@@ -149,7 +149,7 @@ def test_activity_log_written_by_tool_logger(client, test_db_engine):
 
     db = sm(bind=test_db_engine)()
     try:
-        log_tool_call(db, "weather", input_summary="location=Pittsburgh", success=True, duration_ms=120)
+        log_tool_call(db, "weather", input_summary="location=Pittsburgh", success=True, duration_ms=120)  # noqa: E501
     finally:
         db.close()
 
@@ -169,7 +169,7 @@ def test_activity_filter_by_tool(client, test_db_engine):
 
     db = sm(bind=test_db_engine)()
     try:
-        log_tool_call(db, "news", input_summary="categories=tech", success=False, error_message="API key missing", duration_ms=30)
+        log_tool_call(db, "news", input_summary="categories=tech", success=False, error_message="API key missing", duration_ms=30)  # noqa: E501
     finally:
         db.close()
 
