@@ -48,7 +48,8 @@ export interface ResearchSource {
 }
 
 export interface ResearchSSEEvent {
-  type: "status" | "token" | "done" | "error";
+  type: "conversation_id" | "status" | "token" | "done" | "error";
+  conversation_id?: string;
   message?: string;
   content?: string;
   full_content?: string;

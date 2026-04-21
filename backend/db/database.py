@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 
 from core.config import settings
@@ -46,6 +46,17 @@ def init_db() -> None:
             if existing is None:
                 db.add(AppSettings(key=key, value=value))
         db.commit()
+
+        # Add new columns to existing databases (SQLite supports ADD COLUMN for nullable columns)
+        for migration_sql in [
+            "ALTER TABLE conversations ADD COLUMN conversation_type TEXT DEFAULT 'chat'",
+            "ALTER TABLE messages ADD COLUMN extra_data TEXT",
+        ]:
+            try:
+                db.execute(text(migration_sql))
+                db.commit()
+            except Exception:
+                db.rollback()  # Column already exists — safe to ignore
     finally:
         db.close()
 

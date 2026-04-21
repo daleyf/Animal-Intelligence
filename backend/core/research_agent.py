@@ -116,8 +116,12 @@ class ResearchAgent:
                 messages=synthesis_messages,
                 system_prompt=(
                     "You are a research assistant. "
-                    "Answer based only on the provided sources. "
-                    "Use [N] inline citations that match the numbered sources below."
+                    "Answer based ONLY on the provided sources. "
+                    "NEVER invent, assume, or reference sources that were not given to you. "
+                    "CITATION RULE: after each claim, write the source number inside square brackets. "
+                    "The ONLY allowed formats are [1], [2], [3], etc. "
+                    "NEVER write [N1], [N2], [Source 1], [Ref 1], (1), or any other variation. "
+                    "Just a plain number inside square brackets: [1], [2], [3]."
                 ),
             ):
                 collected.append(token)
@@ -182,9 +186,16 @@ def _build_synthesis_prompt(question: str, sources: list[SearchResult]) -> str:
             f"[{i}] {src.title} ({src.source})\n{content_block[:CONTENT_PER_SOURCE]}"
         )
 
+    n = len(sources)
+    valid = ", ".join(f"[{i}]" for i in range(1, n + 1))
     lines.append(
-        "\nWrite a comprehensive, well-structured answer. "
-        "Use [N] citation markers after claims that reference a specific source. "
+        f"\nThere are exactly {n} sources above, numbered 1 to {n}. "
+        f"Valid citations are: {valid}. "
+        f"NEVER cite a number outside the range 1–{n}. "
+        "Write a comprehensive, well-structured answer using ONLY these sources. "
+        "Citation format: place the source number in square brackets after each claim, "
+        "for example [1] or [2]. "
+        "Use ONLY that format — never [N1], [N2], [Source 1], (1), or anything else. "
         "If information conflicts across sources, note the discrepancy."
     )
     return "\n\n".join(lines)

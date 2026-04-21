@@ -46,6 +46,7 @@ class Conversation(Base):
     id = Column(String, primary_key=True, default=_new_uuid)
     title = Column(String(255), nullable=True)  # auto-titled by LLM background task
     model_name = Column(String(100), nullable=False)
+    conversation_type = Column(String(20), nullable=True, default="chat")  # "chat" | "research"
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
     is_deleted = Column(Boolean, default=False, nullable=False)
@@ -66,6 +67,7 @@ class Message(Base):
     role = Column(String(20), nullable=False)  # "user" | "assistant" | "system"
     content = Column(Text, nullable=False)
     token_count = Column(Integer, nullable=True)  # stored after generation
+    extra_data = Column(JSON, nullable=True)  # optional metadata (e.g. sources for research)
     created_at = Column(DateTime, default=_utcnow)
 
     conversation = relationship("Conversation", back_populates="messages")
