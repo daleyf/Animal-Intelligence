@@ -1,8 +1,12 @@
-"""Unit tests for CRUD operations using an in-memory SQLite database."""
+"""
+tests for CRUD operations
+
+using an in-memory SQLite database.
+"""
 
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
 
 from db.models import Base
 from db.crud import conversations as conv_crud
@@ -10,8 +14,9 @@ from db.crud import profile as profile_crud
 from db.crud import settings as settings_crud
 
 
+# Shared fixtures
 @pytest.fixture
-def db() -> Session:
+def db():
     """Create a fresh in-memory SQLite database for each test."""
     engine = create_engine(
         "sqlite:///:memory:", connect_args={"check_same_thread": False}
@@ -24,8 +29,7 @@ def db() -> Session:
     engine.dispose()
 
 
-# ── Conversation CRUD ─────────────────────────────────────────────────────────
-
+# Conversation CRUD
 class TestConversationCrud:
     def test_create_conversation(self, db):
         convo = conv_crud.create_conversation(db, model_name="llama3.1:8b")
@@ -105,8 +109,7 @@ class TestConversationCrud:
         assert total == 0
 
 
-# ── Profile CRUD ──────────────────────────────────────────────────────────────
-
+# Profile CRUD
 class TestProfileCrud:
     def test_get_profile_when_empty(self, db):
         profile = profile_crud.get_profile(db)
@@ -131,8 +134,7 @@ class TestProfileCrud:
         assert profile.id == 1
 
 
-# ── Settings CRUD ─────────────────────────────────────────────────────────────
-
+# Settings CRUD
 class TestSettingsCrud:
     def test_set_and_get(self, db):
         settings_crud.set_value(db, "active_model", "mistral:7b")

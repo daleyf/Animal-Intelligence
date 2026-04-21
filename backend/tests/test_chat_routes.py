@@ -1,5 +1,5 @@
 """
-Integration tests for the /chat and /memory routes using TestClient.
+Chat Routes Tests
 
 These tests use an in-memory SQLite DB and a mock Ollama client so no real
 Ollama process is required.
@@ -15,8 +15,7 @@ from db.models import Base, AppSettings
 from db.database import DEFAULT_SETTINGS
 
 
-# ── Fixtures ──────────────────────────────────────────────────────────────────
-
+# Shared fixtures
 @pytest.fixture(scope="module")
 def test_db_engine():
     engine = create_engine(
@@ -74,8 +73,7 @@ def client(test_db_engine):
     app.dependency_overrides.clear()
 
 
-# ── /health ───────────────────────────────────────────────────────────────────
-
+# /health
 def test_health_endpoint(client):
     resp = client.get("/health")
     assert resp.status_code == 200
@@ -85,8 +83,7 @@ def test_health_endpoint(client):
     assert "ollama_connected" in data
 
 
-# ── /api/v1/chat ──────────────────────────────────────────────────────────────
-
+# /api/v1/chat
 def test_chat_creates_conversation(client):
     """A new chat message should return a conversation_id and stream tokens."""
     with client.stream(
@@ -104,7 +101,6 @@ def test_chat_creates_conversation(client):
 
 def test_chat_continues_conversation(client):
     """Second message with existing conversation_id should succeed."""
-    # First message — get conversation_id
     with client.stream(
         "POST",
         "/api/v1/chat",
@@ -123,7 +119,6 @@ def test_chat_continues_conversation(client):
 
     assert conv_id is not None
 
-    # Second message — continue conversation
     with client.stream(
         "POST",
         "/api/v1/chat",
@@ -147,7 +142,7 @@ def test_chat_invalid_conversation_id(client):
     assert "error" in raw
 
 
-# ── /api/v1/memory ────────────────────────────────────────────────────────────
+# /api/v1/memory
 
 def test_memory_list_returns_available_flag(client):
     resp = client.get("/api/v1/memory")
@@ -166,7 +161,7 @@ def test_memory_count(client):
     assert isinstance(data["count"], int)
 
 
-# ── /api/v1/report ────────────────────────────────────────────────────────────
+# /api/v1/report
 
 def test_report_status(client):
     resp = client.get("/api/v1/report/status")
@@ -185,7 +180,7 @@ def test_report_calendar_auth_no_config(client):
     assert "auth_url" in data or "error" in data
 
 
-# ── /api/v1/conversations ─────────────────────────────────────────────────────
+# /api/v1/conversations
 
 def test_list_conversations_empty(client):
     resp = client.get("/api/v1/conversations")

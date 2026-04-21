@@ -1,7 +1,13 @@
+"""
+Core Services Tests
+
+using an in-memory SQLite database.
+"""
+
 import pytest
 import httpx
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -11,8 +17,7 @@ from db.models import Base, AppSettings
 from db.database import DEFAULT_SETTINGS
 
 
-# ── Shared fixture ─────────────────────────────────────────────────────────────
-
+# Shared fixtures
 @pytest.fixture(scope="module")
 def test_db_engine():
     engine = create_engine(
@@ -64,7 +69,7 @@ def client(test_db_engine):
     app.dependency_overrides.clear()
 
 
-# ── OllamaClient unit tests ────────────────────────────────────────────────────
+# Ollama client tests
 
 class TestOllamaClient:
     @pytest.mark.asyncio
@@ -133,7 +138,7 @@ class TestOllamaClient:
             assert "size_gb" in m
 
 
-# ── Settings route ─────────────────────────────────────────────────────────────
+# Settings route
 
 class TestSettingsRoute:
     def test_get_settings_returns_defaults(self, client):
@@ -165,7 +170,7 @@ class TestSettingsRoute:
 
         client.put("/api/v1/settings", json={"context_window_tokens": "4096"})
 
-
+# Profile route
 class TestProfileRoute:
     def test_get_profile_returns_shape(self, client):
         resp = client.get("/api/v1/profile")
@@ -224,6 +229,7 @@ class TestConversationsRoute:
         data = resp.json()
         assert "deleted" in data
 
+# Models route
 class TestModelsRoute:
     def test_list_models_returns_shape(self, client):
         resp = client.get("/api/v1/models")

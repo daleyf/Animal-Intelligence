@@ -1,17 +1,11 @@
 """
-Unit tests for the memory store and research agent.
-
-MemoryStore tests use a temporary ChromaDB directory (skipped if chromadb
-is not installed so CI can run without the heavy dependency).
+Tests for MemoryStore and ResearchAgent components.
 """
-
-import os
 import tempfile
 import pytest
 
 
-# ── MemoryStore ───────────────────────────────────────────────────────────────
-
+# MemoryStore
 try:
     import chromadb  # noqa: F401
     CHROMA_AVAILABLE = True
@@ -19,6 +13,7 @@ except ImportError:
     CHROMA_AVAILABLE = False
 
 
+# Shared fixtures
 @pytest.fixture
 def store():
     """Fresh MemoryStore backed by a temporary directory."""
@@ -30,6 +25,7 @@ def store():
         yield MemoryStore(persist_directory=tmpdir)
 
 
+# MemoryStore tests
 class TestMemoryStore:
     def test_store_and_count(self, store):
         assert store.get_count() == 0
@@ -95,7 +91,7 @@ class TestMemoryStore:
         assert result is None or isinstance(result, str)
 
 
-# ── Research agent (unit-level — mocks LLM and search) ───────────────────────
+# Research agent test
 
 class MockOllamaClient:
     """Minimal mock that yields canned tokens."""
@@ -170,5 +166,5 @@ async def test_research_agent_query_generation():
 
     agent = ResearchAgent(ollama=BrokenQueryOllama(), search=MockWebSearchClient())
     queries = await agent._generate_queries("test question", "test-model")
-    # Should fall back to the original question
+    # fall back to the original question
     assert queries == ["test question"]
