@@ -14,6 +14,7 @@ import { IntegrationsPage } from "@/components/settings/IntegrationsPage";
 import { VoicePage } from "@/components/settings/VoicePage";
 import { ActivityLog } from "@/components/layout/ActivityLog";
 import { ReportPage } from "@/components/layout/ReportPage";
+import { ResearchPage } from "@/components/research/ResearchPage";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -89,6 +90,7 @@ function AppInner() {
         <Routes>
           <Route element={<AppShell />}>
             <Route path="/" element={<ChatPage />} />
+            <Route path="/research" element={<ResearchPage />} />
             <Route path="/report" element={<ReportPage />} />
             <Route path="/activity" element={<ActivityLog />} />
             <Route path="/settings" element={<SettingsPage />}>
