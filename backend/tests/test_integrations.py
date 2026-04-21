@@ -233,6 +233,48 @@ def test_report_latest(client):
     assert "generated_at" in data
 
 
+def test_integration_secret_routes_mask_and_update(client, monkeypatch, tmp_path):
+    from core import env_secrets
+
+    temp_env = tmp_path / ".env"
+    temp_env.write_text("OLLAMA_API_KEY=existing-secret-9876\n", encoding="utf-8")
+
+    original_env_path = env_secrets.ENV_PATH
+    monkeypatch.setattr(env_secrets, "ENV_PATH", temp_env)
+    env_secrets._refresh_runtime_settings()
+
+    try:
+        resp = client.get("/api/v1/settings/integrations/secrets")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["OLLAMA_API_KEY"]["configured"] is True
+        assert data["OLLAMA_API_KEY"]["last4"] == "9876"
+        assert "value" not in data["OLLAMA_API_KEY"]
+
+        update_resp = client.put(
+            "/api/v1/settings/integrations/secrets/OPENWEATHERMAP_API_KEY",
+            json={"value": "weather-secret-1234"},
+        )
+        assert update_resp.status_code == 200
+        assert update_resp.json()["configured"] is True
+        assert update_resp.json()["last4"] == "1234"
+        assert "weather-secret-1234" in temp_env.read_text(encoding="utf-8")
+
+        delete_resp = client.delete("/api/v1/settings/integrations/secrets/OPENWEATHERMAP_API_KEY")
+        assert delete_resp.status_code == 200
+        assert delete_resp.json()["configured"] is False
+        assert "weather-secret-1234" not in temp_env.read_text(encoding="utf-8")
+
+        bad_resp = client.put(
+            "/api/v1/settings/integrations/secrets/NOT_ALLOWED",
+            json={"value": "should-fail"},
+        )
+        assert bad_resp.status_code == 400
+    finally:
+        monkeypatch.setattr(env_secrets, "ENV_PATH", original_env_path)
+        env_secrets._refresh_runtime_settings()
+
+
 # Tool logger unit tests
 def test_tool_logger_success(test_db_engine):
     from core.tool_logger import log_tool_call
