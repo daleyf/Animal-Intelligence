@@ -110,7 +110,6 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-pip install uvicorn
 python -m uvicorn main:app --reload --port 8000
 ```
 
