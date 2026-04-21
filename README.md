@@ -103,11 +103,15 @@ The defaults in `.env.example` are enough to get started. Optional integrations 
 
 ### Step 4 — Start the backend
 
+#### For Windows
+Requires **Python 3.12.X**
+
+#### For Mac
 Requires **Python 3.13+**.
 
 ```bash
 cd backend
-python3 -m venv .venv
+python3 -m venv .venv              # Windows: py -3.12 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python -m uvicorn main:app --reload --port 8000
