@@ -131,6 +131,8 @@ class MockSearchResult:
 
 
 class MockWebSearchClient:
+    available = True
+
     async def search(self, query, count=5):
         return [MockSearchResult()]
 
