@@ -25,7 +25,7 @@ export function Sidebar() {
         display: "flex",
         flexDirection: "column",
         flexShrink: 0,
-        height: "100vh",
+        height: "100%",
       }}
     >
       {/* ── Branding ── */}

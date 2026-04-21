@@ -129,7 +129,7 @@ The frontend uses `fetch` + `ReadableStream` (not `EventSource`, which is GET-on
 - **Core chat**: streaming SSE, conversation persistence, model management, onboarding, personalization
 - **Memory**: ChromaDB vector memory, context injection from past conversations
 - **Research**: web research agent, Ollama Web Search API integration
-- **Morning report**: weather, news, commute, Google Calendar summary, scheduled auto-generation
+- **Daily Report**: weather, news, commute, Google Calendar summary, scheduled auto-generation
 - **Voice**: browser TTS, built-in and custom voice profiles
-- **Activity log**: tool invocation audit trail at `/activity`
+- **Activity Logs**: tool invocation audit trail at `/activity`
 - **Security**: PII sanitization on outbound queries, Fernet encryption for OAuth tokens at rest

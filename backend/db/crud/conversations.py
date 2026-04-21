@@ -9,8 +9,10 @@ from sqlalchemy.orm import Session
 from db.models import Conversation, Message
 
 
-def create_conversation(db: Session, model_name: str) -> Conversation:
-    convo = Conversation(model_name=model_name)
+def create_conversation(
+    db: Session, model_name: str, conversation_type: str = "chat"
+) -> Conversation:
+    convo = Conversation(model_name=model_name, conversation_type=conversation_type)
     db.add(convo)
     db.commit()
     db.refresh(convo)
@@ -85,12 +87,14 @@ def add_message(
     role: str,
     content: str,
     token_count: int | None = None,
+    extra_data: dict | None = None,
 ) -> Message:
     msg = Message(
         conversation_id=conversation_id,
         role=role,
         content=content,
         token_count=token_count,
+        extra_data=extra_data,
     )
     db.add(msg)
     # Bump conversation updated_at so sidebar sorts correctly

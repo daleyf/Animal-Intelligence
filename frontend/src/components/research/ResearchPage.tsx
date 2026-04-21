@@ -1,24 +1,151 @@
-import { KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  KeyboardEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { useAppStore } from "@/store/appStore";
 import { streamResearch } from "@/api/memory";
 import { streamChat } from "@/api/chat";
+import { fetchConversation } from "@/api/conversations";
 import { ResearchSource } from "@/types/memory";
 import { StreamingIndicator } from "@/components/chat/StreamingIndicator";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface ResearchMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
-  sources?: ResearchSource[];
+  sources?: ResearchSource[];   // present on research-result messages
+  reasoning?: string[];         // status steps collected during research
   isStreaming?: boolean;
 }
 
-// ── Small helpers ─────────────────────────────────────────────────────────────
-
 function uid() {
   return Math.random().toString(36).slice(2);
+}
+
+/**
+ * Convert inline [n] or [Nn] citation markers to markdown links pointing at
+ * the corresponding source URL, so ReactMarkdown renders them as clickable anchors.
+ *
+ * Handles both clean [1] format and the [N1] / [N2] format the LLM sometimes
+ * produces when it misreads the "[N]" placeholder in the prompt instructions.
+ */
+function preprocessCitations(content: string, sources: ResearchSource[]): string {
+  if (!sources.length) return content;
+  // Match [1], [2] … as well as [N1], [N2] … where N is any leading non-digit prefix
+  return content.replace(/\[([A-Za-z]*\d+)\]/g, (_match, token) => {
+    // Extract the trailing numeric part to find the 1-based source index
+    const digits = token.replace(/^\D+/, "");
+    const idx = parseInt(digits, 10) - 1;
+    if (idx >= 0 && idx < sources.length) {
+      // Render as [[token]](url) — ReactMarkdown turns this into a link with text [token]
+      return `[[${token}]](${sources[idx].url})`;
+    }
+    // Out-of-range or hallucinated citation — remove it entirely rather than
+    // leaving a broken [6] or [7] marker in the visible text
+    return "";
+  });
+}
+
+// ── Reasoning chain dropdown ──────────────────────────────────────────────────
+
+function ReasoningChain({
+  steps,
+  isStreaming,
+}: {
+  steps: string[];
+  isStreaming?: boolean;
+}) {
+  // Open while streaming so the user sees live progress; auto-close when done
+  const [open, setOpen] = useState(true);
+  const prevStreaming = useRef(isStreaming);
+
+  useEffect(() => {
+    if (prevStreaming.current && !isStreaming) {
+      setOpen(false);
+    }
+    prevStreaming.current = isStreaming;
+  }, [isStreaming]);
+
+  if (steps.length === 0) return null;
+
+  return (
+    <div style={{ marginBottom: "12px" }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "5px",
+          background: "none",
+          border: "none",
+          padding: "0",
+          cursor: "pointer",
+          color: "var(--color-text-muted)",
+          fontSize: "11.5px",
+          fontFamily: "var(--font-sans)",
+          opacity: 0.75,
+          userSelect: "none",
+        }}
+      >
+        <svg
+          width="9"
+          height="9"
+          viewBox="0 0 9 9"
+          fill="none"
+          style={{
+            transform: open ? "rotate(90deg)" : "rotate(0deg)",
+            transition: "transform 0.15s ease",
+            flexShrink: 0,
+          }}
+        >
+          <path d="M2 1.5l4 3-4 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        Research steps ({steps.length})
+        {isStreaming && (
+          <span
+            className="streaming-cursor"
+            style={{ background: "var(--color-text-muted)", marginLeft: "2px" }}
+          />
+        )}
+      </button>
+
+      {open && (
+        <div
+          style={{
+            marginTop: "7px",
+            paddingLeft: "14px",
+            borderLeft: "2px solid var(--color-border)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px",
+          }}
+        >
+          {steps.map((step, i) => (
+            <div
+              key={i}
+              style={{
+                fontSize: "11.5px",
+                color: "var(--color-text-muted)",
+                lineHeight: "1.5",
+                opacity: 0.8,
+              }}
+            >
+              {step}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── Source card ───────────────────────────────────────────────────────────────
@@ -84,17 +211,8 @@ function UserBubble({ content }: { content: string }) {
   );
 }
 
-function AssistantBubble({
-  content,
-  sources,
-  isStreaming,
-  isResearch,
-}: {
-  content: string;
-  sources?: ResearchSource[];
-  isStreaming?: boolean;
-  isResearch?: boolean;
-}) {
+function AssistantBubble({ msg }: { msg: ResearchMessage }) {
+  const { content, sources, reasoning, isStreaming } = msg;
   const isEmpty = !content;
 
   return (
@@ -106,7 +224,7 @@ function AssistantBubble({
         animation: "message-in 0.2s ease",
       }}
     >
-      {/* Dot marker */}
+      {/* Dot marker — solid for research results, dimmer for chat */}
       <div
         style={{
           position: "absolute",
@@ -115,22 +233,47 @@ function AssistantBubble({
           width: "5px",
           height: "5px",
           borderRadius: "50%",
-          background: isResearch ? "var(--color-accent)" : "rgba(0,120,255,0.4)",
+          background: "var(--color-accent)",
+          opacity: reasoning !== undefined ? 0.7 : 0.4,
           flexShrink: 0,
         }}
       />
 
       <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Reasoning chain — only on research messages */}
+        {reasoning !== undefined && (
+          <ReasoningChain steps={reasoning} isStreaming={isStreaming} />
+        )}
+
+        {/* Main answer */}
         {isStreaming && isEmpty ? (
           <StreamingIndicator />
         ) : (
           <div className="llm-body">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({ href, children }) => (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "var(--color-accent)" }}
+                  >
+                    {children}
+                  </a>
+                ),
+              }}
+            >
+              {!isStreaming && sources?.length
+                ? preprocessCitations(content, sources)
+                : content}
+            </ReactMarkdown>
             {isStreaming && <StreamingIndicator inline />}
           </div>
         )}
 
-        {/* Sources */}
+        {/* Sources — shown only after streaming completes */}
         {!isStreaming && sources && sources.length > 0 && (
           <div style={{ marginTop: "16px" }}>
             <div
@@ -172,7 +315,6 @@ function EmptyState() {
         userSelect: "none",
       }}
     >
-      {/* Search icon */}
       <svg
         width="44"
         height="44"
@@ -214,10 +356,13 @@ function EmptyState() {
 
 export function ResearchPage() {
   const { activeModel } = useAppStore();
+  const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const conversationIdParam = searchParams.get("id");
+
   const [messages, setMessages] = useState<ResearchMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
-  const [status, setStatus] = useState("");
   const [inputValue, setInputValue] = useState("");
   const [focused, setFocused] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -225,6 +370,38 @@ export function ResearchPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [userScrolled, setUserScrolled] = useState(false);
+
+  // Load a saved conversation when ?id= is present in the URL
+  useEffect(() => {
+    if (!conversationIdParam) {
+      setMessages([]);
+      setConversationId(null);
+      return;
+    }
+    fetchConversation(conversationIdParam).then((detail) => {
+      const reconstructed: ResearchMessage[] = [];
+      for (const msg of detail.messages) {
+        if (msg.role === "user") {
+          reconstructed.push({ id: uid(), role: "user", content: msg.content });
+        } else if (msg.role === "assistant") {
+          const sources: ResearchSource[] = msg.extra_data?.sources ?? [];
+          reconstructed.push({
+            id: uid(),
+            role: "assistant",
+            content: msg.content,
+            sources,
+            reasoning: [],
+          });
+        }
+      }
+      setMessages(reconstructed);
+      setConversationId(detail.id);
+    }).catch(() => {
+      // Conversation not found — show empty state
+      setMessages([]);
+      setConversationId(null);
+    });
+  }, [conversationIdParam]);
 
   // Auto-scroll
   useEffect(() => {
@@ -244,12 +421,24 @@ export function ResearchPage() {
     setUserScrolled(false);
   }, [messages.length]);
 
-  // Add a pending assistant message and return its id
+  // ── Message helpers ──────────────────────────────────────────────────────────
+
+  const addUserMessage = (content: string): void => {
+    const id = uid();
+    setMessages((prev) => [...prev, { id, role: "user", content }]);
+  };
+
   const addPendingAssistant = (isResearch: boolean): string => {
     const id = uid();
     setMessages((prev) => [
       ...prev,
-      { id, role: "assistant", content: "", isStreaming: true, sources: isResearch ? [] : undefined },
+      {
+        id,
+        role: "assistant",
+        content: "",
+        isStreaming: true,
+        ...(isResearch ? { reasoning: [], sources: [] } : {}),
+      },
     ]);
     return id;
   };
@@ -260,39 +449,57 @@ export function ResearchPage() {
     );
   };
 
+  const appendReasoning = (asstId: string, step: string) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === asstId
+          ? { ...m, reasoning: [...(m.reasoning ?? []), step] }
+          : m
+      )
+    );
+  };
+
   // ── Research flow ────────────────────────────────────────────────────────────
+
   const doResearch = async (question: string) => {
-    const userMsgId = uid();
-    setMessages([{ id: userMsgId, role: "user", content: question }]);
+    // Reset to a fresh session
+    setMessages([]);
+    setConversationId(null);
+    addUserMessage(question);
     const asstId = addPendingAssistant(true);
-    setStatus("Starting research…");
     setIsRunning(true);
 
     const controller = new AbortController();
     abortRef.current = controller;
-
     let accumulated = "";
 
     await streamResearch(
       question,
       activeModel,
       {
-        onStatus: (msg) => setStatus(msg),
+        onConversationId: (id) => {
+          setConversationId(id);
+        },
+        onStatus: (msg) => {
+          // Append each status step to the reasoning chain inside the message bubble
+          appendReasoning(asstId, msg);
+        },
         onToken: (token) => {
           accumulated += token;
           updateMessage(asstId, { content: accumulated });
         },
         onDone: (fullContent, srcs) => {
-          updateMessage(asstId, { content: fullContent, sources: srcs, isStreaming: false });
-          setStatus("");
-          setIsRunning(false);
-        },
-        onError: (msg) => {
           updateMessage(asstId, {
-            content: msg,
+            content: fullContent,
+            sources: srcs,
             isStreaming: false,
           });
-          setStatus("");
+          setIsRunning(false);
+          // Refresh sidebar so the new research conversation appears
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        },
+        onError: (msg) => {
+          updateMessage(asstId, { content: msg, isStreaming: false, sources: undefined });
           setIsRunning(false);
         },
       },
@@ -301,23 +508,20 @@ export function ResearchPage() {
   };
 
   // ── Follow-up chat flow ──────────────────────────────────────────────────────
+
   const doChat = async (message: string) => {
-    const userMsgId = uid();
-    setMessages((prev) => [...prev, { id: userMsgId, role: "user", content: message }]);
+    addUserMessage(message);
     const asstId = addPendingAssistant(false);
     setIsRunning(true);
 
     const controller = new AbortController();
     abortRef.current = controller;
-
     let accumulated = "";
-    let localConvId = conversationId;
 
     await streamChat(
-      { message, conversation_id: localConvId, model: activeModel },
+      { message, conversation_id: conversationId, model: activeModel },
       {
         onConversationId: (id) => {
-          localConvId = id;
           setConversationId(id);
         },
         onToken: (token) => {
@@ -327,6 +531,8 @@ export function ResearchPage() {
         onDone: (fullContent) => {
           updateMessage(asstId, { content: fullContent, isStreaming: false });
           setIsRunning(false);
+          // Refresh sidebar to reflect updated_at sort order
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
         },
         onError: (msg) => {
           updateMessage(asstId, { content: msg, isStreaming: false });
@@ -338,6 +544,7 @@ export function ResearchPage() {
   };
 
   // ── Send handler ─────────────────────────────────────────────────────────────
+
   const handleSend = async () => {
     const text = inputValue.trim();
     if (!text || isRunning) return;
@@ -356,7 +563,6 @@ export function ResearchPage() {
   const handleStop = () => {
     abortRef.current?.abort();
     setIsRunning(false);
-    setStatus("");
     setMessages((prev) =>
       prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m))
     );
@@ -378,11 +584,16 @@ export function ResearchPage() {
 
   const canSend = !isRunning && inputValue.trim().length > 0;
   const isFirstMessage = messages.length === 0;
+
   const placeholder = isRunning
-    ? "Researching…"
+    ? isFirstMessage
+      ? "Researching…"
+      : "Thinking…"
     : isFirstMessage
     ? "Ask something to research…"
     : "Ask a follow-up…";
+
+  // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <div
@@ -394,7 +605,7 @@ export function ResearchPage() {
         height: "100%",
       }}
     >
-      {/* ── Message thread ──────────────────────────────────────────────────── */}
+      {/* Message thread */}
       {messages.length === 0 ? (
         <EmptyState />
       ) : (
@@ -423,13 +634,7 @@ export function ResearchPage() {
               msg.role === "user" ? (
                 <UserBubble key={msg.id} content={msg.content} />
               ) : (
-                <AssistantBubble
-                  key={msg.id}
-                  content={msg.content}
-                  sources={msg.sources}
-                  isStreaming={msg.isStreaming}
-                  isResearch={msg.sources !== undefined}
-                />
+                <AssistantBubble key={msg.id} msg={msg} />
               )
             )}
             <div ref={bottomRef} />
@@ -437,27 +642,7 @@ export function ResearchPage() {
         </div>
       )}
 
-      {/* ── Status bar ─────────────────────────────────────────────────────── */}
-      {status && (
-        <div
-          style={{
-            padding: "6px 20px",
-            fontSize: "11px",
-            color: "var(--color-text-muted)",
-            display: "flex",
-            alignItems: "center",
-            gap: "7px",
-            borderTop: "1px solid var(--color-border)",
-            background: "var(--color-bg)",
-            flexShrink: 0,
-          }}
-        >
-          <span className="streaming-cursor" style={{ background: "var(--color-accent)" }} />
-          {status}
-        </div>
-      )}
-
-      {/* ── Input area ─────────────────────────────────────────────────────── */}
+      {/* Input area — identical styling to ChatInput */}
       <div
         style={{
           padding: "6px 0 14px",
