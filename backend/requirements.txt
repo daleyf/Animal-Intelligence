@@ -15,6 +15,7 @@ flake8==7.1.1
 
 # Vector memory (ChromaDB + local embeddings)
 chromadb==0.5.23
+posthog>=3.0.0,<6.0.0  # compatible with Chroma telemetry (posthog 6+ breaks capture())
 sentence-transformers==3.3.1
 
 # Web search and content extraction
