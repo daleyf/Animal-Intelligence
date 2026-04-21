@@ -3,11 +3,11 @@ import { ConversationList } from "@/components/sidebar/ConversationList";
 import { NewChatButton } from "@/components/sidebar/NewChatButton";
 import { ConversationSearch } from "@/components/sidebar/ConversationSearch";
 import { useState } from "react";
-import { useAppStore } from "@/store/appStore";
 import anchorpointLogo from "@/assets/AnchorpointLogo.svg";
 
 const NAV_ITEMS = [
   { label: "Chat", path: "/", icon: ChatIcon },
+  { label: "Research", path: "/research", icon: SearchIcon },
   { label: "Morning Report", path: "/report", icon: SunIcon },
   { label: "Activity Log", path: "/activity", icon: ListIcon },
 ];
@@ -15,9 +15,6 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const location = useLocation();
   const [search, setSearch] = useState("");
-  const { researchOpen, setResearchOpen } = useAppStore();
-
-  const isChat = location.pathname === "/";
 
   return (
     <div
@@ -79,57 +76,27 @@ export function Sidebar() {
           const isActive =
             path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
           return (
-            <div key={path}>
-              <Link
-                to={path}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "9px",
-                  padding: "7px 9px",
-                  borderRadius: "var(--radius-sm)",
-                  color: isActive ? "var(--color-text)" : "var(--color-text-muted)",
-                  background: isActive ? "rgba(245,245,242,0.06)" : "transparent",
-                  textDecoration: "none",
-                  fontSize: "13px",
-                  fontWeight: isActive ? 500 : 400,
-                  transition: "background 0.12s, color 0.12s",
-                  marginBottom: "1px",
-                }}
-              >
-                <Icon active={isActive} />
-                {label}
-              </Link>
-
-              {/* Research sub-item — only visible while on the Chat route */}
-              {path === "/" && isChat && (
-                <button
-                  onClick={() => setResearchOpen(!researchOpen)}
-                  title={researchOpen ? "Close research panel" : "Open research panel"}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "9px",
-                    padding: "5px 9px 5px 30px",
-                    borderRadius: "var(--radius-sm)",
-                    color: researchOpen ? "var(--color-accent)" : "var(--color-text-muted)",
-                    background: researchOpen ? "var(--color-accent-dim)" : "transparent",
-                    border: "none",
-                    width: "100%",
-                    textAlign: "left",
-                    fontSize: "12px",
-                    fontWeight: researchOpen ? 500 : 400,
-                    cursor: "pointer",
-                    fontFamily: "var(--font-sans)",
-                    marginBottom: "1px",
-                    transition: "background 0.12s, color 0.12s",
-                  }}
-                >
-                  <SearchIcon active={researchOpen} />
-                  Research
-                </button>
-              )}
-            </div>
+            <Link
+              key={path}
+              to={path}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "9px",
+                padding: "7px 9px",
+                borderRadius: "var(--radius-sm)",
+                color: isActive ? "var(--color-text)" : "var(--color-text-muted)",
+                background: isActive ? "rgba(245,245,242,0.06)" : "transparent",
+                textDecoration: "none",
+                fontSize: "13px",
+                fontWeight: isActive ? 500 : 400,
+                transition: "background 0.12s, color 0.12s",
+                marginBottom: "1px",
+              }}
+            >
+              <Icon active={isActive} />
+              {label}
+            </Link>
           );
         })}
       </nav>
