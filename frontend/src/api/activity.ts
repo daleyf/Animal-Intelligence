@@ -8,6 +8,11 @@ export interface ToolLogEntry {
   error_message: string | null;
   duration_ms: number | null;
   created_at: string | null;
+  session_id: string | null;
+  /** JSON-encoded string[] of individual search queries executed within this call */
+  sub_queries: string | null;
+  /** Human-readable label of where data was sent, e.g. "ollama.com/api/web_search" */
+  data_destination: string | null;
 }
 
 export interface ActivityResponse {

@@ -8,6 +8,7 @@ from input summaries before storage.
 
 from __future__ import annotations
 
+import json as _json
 import logging
 import time
 from contextlib import asynccontextmanager, contextmanager
@@ -31,10 +32,22 @@ def log_tool_call(
     success: bool = True,
     error_message: str | None = None,
     duration_ms: int | None = None,
+    session_id: str | None = None,
+    sub_queries: list[str] | None = None,
+    data_destination: str | None = None,
 ) -> None:
     """
     Write a single ToolLog row.  Never raises — log failures are swallowed so
     they never interrupt the main request path.
+
+    Args:
+        session_id: Groups related calls (e.g. all queries for one research session
+                    or all tool calls for one morning report).
+        sub_queries: Individual search strings executed within this call (e.g. the
+                     2-3 queries the research agent auto-generated from one question).
+        data_destination: Human-readable label of where data was sent, e.g.
+                          "ollama.com/api/web_search" or "api.openweathermap.org".
+                          None / omitted means the call was local-only.
     """
     try:
         db.add(
@@ -44,6 +57,9 @@ def log_tool_call(
                 success=success,
                 error_message=error_message[:500] if error_message else None,
                 duration_ms=duration_ms,
+                session_id=session_id,
+                sub_queries=_json.dumps(sub_queries) if sub_queries else None,
+                data_destination=data_destination,
             )
         )
         db.commit()
@@ -64,6 +80,8 @@ def timed_tool(
     db: Session,
     tool_name: str,
     input_summary: str = "",
+    session_id: str | None = None,
+    data_destination: str | None = None,
 ) -> Iterator[None]:
     """
     Context manager that records timing + success/failure for synchronous tools.
@@ -77,12 +95,17 @@ def timed_tool(
     try:
         yield
         elapsed = int((time.monotonic() - start) * 1000)
-        log_tool_call(db, tool_name, input_summary, success=True, duration_ms=elapsed)
+        log_tool_call(
+            db, tool_name, input_summary,
+            success=True, duration_ms=elapsed,
+            session_id=session_id, data_destination=data_destination,
+        )
     except Exception as exc:
         elapsed = int((time.monotonic() - start) * 1000)
         log_tool_call(
             db, tool_name, input_summary,
             success=False, error_message=str(exc), duration_ms=elapsed,
+            session_id=session_id, data_destination=data_destination,
         )
         raise
 
@@ -96,6 +119,8 @@ async def async_timed_tool(
     db: Session,
     tool_name: str,
     input_summary: str = "",
+    session_id: str | None = None,
+    data_destination: str | None = None,
 ) -> AsyncIterator[None]:
     """
     Async context manager that records timing + success/failure.
@@ -109,11 +134,16 @@ async def async_timed_tool(
     try:
         yield
         elapsed = int((time.monotonic() - start) * 1000)
-        log_tool_call(db, tool_name, input_summary, success=True, duration_ms=elapsed)
+        log_tool_call(
+            db, tool_name, input_summary,
+            success=True, duration_ms=elapsed,
+            session_id=session_id, data_destination=data_destination,
+        )
     except Exception as exc:
         elapsed = int((time.monotonic() - start) * 1000)
         log_tool_call(
             db, tool_name, input_summary,
             success=False, error_message=str(exc), duration_ms=elapsed,
+            session_id=session_id, data_destination=data_destination,
         )
         raise

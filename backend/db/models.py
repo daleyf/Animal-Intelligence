@@ -120,6 +120,10 @@ class ToolLog(Base):
     error_message = Column(Text, nullable=True)
     duration_ms = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=_utcnow, index=True)
+    # Extended audit fields
+    session_id = Column(String(36), nullable=True, index=True)   # groups related calls (research, report)
+    sub_queries = Column(Text, nullable=True)                     # JSON array of individual search strings
+    data_destination = Column(String(200), nullable=True)         # where data was sent (human-readable)
 
 
 class GoogleCalendarToken(Base):

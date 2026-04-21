@@ -13,6 +13,7 @@ GET  /report/calendar/events     → today's calendar events
 """
 
 import json
+import uuid
 from typing import AsyncIterator
 
 from fastapi import APIRouter, Depends
@@ -78,12 +79,15 @@ async def get_report(
     token_row = _decrypted_token(_get_or_create_token(db))
 
     async def event_stream() -> AsyncIterator[str]:
+        session_id = str(uuid.uuid4())
         try:
             async for token in morning_report_service.generate(
                 profile=profile,
                 token_row=token_row,
                 model=active_model,
                 ollama=ollama,
+                db=db,
+                session_id=session_id,
             ):
                 yield _sse({"type": "token", "content": token})
             yield _sse({"type": "done"})

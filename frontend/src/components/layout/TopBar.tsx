@@ -1,24 +1,26 @@
 import { useEffect } from "react";
 import { useAppStore } from "@/store/appStore";
 import { useModels } from "@/hooks/useModels";
+import { useConversation } from "@/hooks/useConversations";
 import { setActiveModel } from "@/api/models";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 
 export function TopBar() {
-  const { activeModel, setActiveModel: storeSetActiveModel, ollamaConnected } = useAppStore();
+  const { activeModel, setActiveModel: storeSetActiveModel, ollamaConnected, activeConversationId } = useAppStore();
   const { data: modelsData } = useModels();
+  const { data: activeConversation } = useConversation(activeConversationId);
 
   // Sync active model to an installed model if the stored value isn't available
   useEffect(() => {
     if (!modelsData?.installed.length) return;
     const installedNames = modelsData.installed.map((m) => m.name);
     if (!installedNames.includes(activeModel)) {
-      // Use the backend-corrected value (auto-selected first installed model)
       const corrected = modelsData.active_model || installedNames[0];
       storeSetActiveModel(corrected);
     }
   }, [modelsData, activeModel, storeSetActiveModel]);
+
   const queryClient = useQueryClient();
   const { show, ToastContainer } = useToast();
 
@@ -30,6 +32,8 @@ export function TopBar() {
     show(`Switched to ${model}`, "info");
   };
 
+  const conversationTitle = activeConversation?.title ?? null;
+
   return (
     <>
       <div
@@ -40,39 +44,39 @@ export function TopBar() {
           display: "flex",
           alignItems: "center",
           padding: "0 16px",
-          gap: "10px",
+          gap: "12px",
           flexShrink: 0,
+          minWidth: 0,
         }}
       >
-        {/* Ollama status */}
+        {/* Conversation title — left side, takes all remaining space */}
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            fontSize: "11.5px",
-            color: "var(--color-text-muted)",
-            letterSpacing: "0.01em",
+            flex: 1,
+            minWidth: 0,
+            overflow: "hidden",
           }}
         >
-          <div
-            style={{
-              width: "6px",
-              height: "6px",
-              borderRadius: "50%",
-              background: ollamaConnected ? "var(--color-success)" : "var(--color-danger)",
-              boxShadow: ollamaConnected
-                ? "0 0 6px rgba(119, 221, 119, 0.5)"
-                : "0 0 6px rgba(228, 89, 76, 0.4)",
-            }}
-          />
-          {ollamaConnected ? "Connected" : "Ollama offline"}
+          {conversationTitle && (
+            <span
+              style={{
+                fontSize: "14px",
+                fontWeight: 500,
+                color: "var(--color-text)",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                display: "block",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {conversationTitle}
+            </span>
+          )}
         </div>
 
-        <div style={{ flex: 1 }} />
-
         {/* Model selector */}
-        <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "7px", flexShrink: 0 }}>
           <span style={{ fontSize: "11.5px", color: "var(--color-text-muted)", letterSpacing: "0.01em" }}>
             Model
           </span>
@@ -102,6 +106,32 @@ export function TopBar() {
               <option value={activeModel}>{activeModel}</option>
             )}
           </select>
+        </div>
+
+        {/* Ollama status — far right, inline with model selector */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            fontSize: "11.5px",
+            color: "var(--color-text-muted)",
+            letterSpacing: "0.01em",
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              width: "6px",
+              height: "6px",
+              borderRadius: "50%",
+              background: ollamaConnected ? "var(--color-success)" : "var(--color-danger)",
+              boxShadow: ollamaConnected
+                ? "0 0 6px rgba(119, 221, 119, 0.5)"
+                : "0 0 6px rgba(228, 89, 76, 0.4)",
+            }}
+          />
+          {ollamaConnected ? "Connected" : "Ollama offline"}
         </div>
       </div>
       <ToastContainer />

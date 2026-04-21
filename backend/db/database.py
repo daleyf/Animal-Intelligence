@@ -50,6 +50,9 @@ def init_db() -> None:
         for migration_sql in [
             "ALTER TABLE conversations ADD COLUMN conversation_type TEXT DEFAULT 'chat'",
             "ALTER TABLE messages ADD COLUMN extra_data TEXT",
+            "ALTER TABLE tool_logs ADD COLUMN session_id TEXT",
+            "ALTER TABLE tool_logs ADD COLUMN sub_queries TEXT",
+            "ALTER TABLE tool_logs ADD COLUMN data_destination TEXT",
         ]:
             try:
                 db.execute(text(migration_sql))
