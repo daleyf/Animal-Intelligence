@@ -73,8 +73,7 @@ class ResearchAgent:
             yield ResearchEvent(
                 type="error",
                 message=(
-                    "No Ollama API key configured. "
-                    "Add OLLAMA_API_KEY in Settings → Integrations."
+                    "No Ollama API key. Add OLLAMA_API_KEY in Settings → Integrations."
                 ),
             )
             return
