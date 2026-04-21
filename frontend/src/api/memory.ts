@@ -50,6 +50,7 @@ export async function streamResearch(
   question: string,
   model: string | undefined,
   callbacks: {
+    onConversationId: (id: string) => void;
     onStatus: (msg: string) => void;
     onToken: (token: string) => void;
     onDone: (fullContent: string, sources: ResearchSource[]) => void;
@@ -104,6 +105,11 @@ export async function streamResearch(
           continue;
         }
         switch (event.type) {
+          case "conversation_id":
+            if (event.conversation_id) {
+              callbacks.onConversationId(event.conversation_id);
+            }
+            break;
           case "status":
             callbacks.onStatus(event.message ?? "");
             break;

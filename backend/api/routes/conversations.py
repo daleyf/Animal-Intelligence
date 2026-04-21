@@ -14,6 +14,7 @@ class ConversationSummary(BaseModel):
     id: str
     title: str | None
     model_name: str
+    conversation_type: str | None
     updated_at: str
     preview: str
 
@@ -27,6 +28,7 @@ class MessageOut(BaseModel):
     id: str
     role: str
     content: str
+    extra_data: dict | None
     created_at: str
 
 
@@ -34,6 +36,7 @@ class ConversationDetailResponse(BaseModel):
     id: str
     title: str | None
     model_name: str
+    conversation_type: str | None
     created_at: str
     messages: list[MessageOut]
 
@@ -54,6 +57,7 @@ def list_conversations(
                 id=c.id,
                 title=c.title,
                 model_name=c.model_name,
+                conversation_type=c.conversation_type,
                 updated_at=c.updated_at.isoformat() if c.updated_at else "",
                 preview=preview,
             )
@@ -72,12 +76,14 @@ def get_conversation(conversation_id: str, db: Session = Depends(get_db)):
         id=convo.id,
         title=convo.title,
         model_name=convo.model_name,
+        conversation_type=convo.conversation_type,
         created_at=convo.created_at.isoformat() if convo.created_at else "",
         messages=[
             MessageOut(
                 id=m.id,
                 role=m.role,
                 content=m.content,
+                extra_data=m.extra_data,
                 created_at=m.created_at.isoformat() if m.created_at else "",
             )
             for m in messages

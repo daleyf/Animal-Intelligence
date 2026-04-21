@@ -1,7 +1,10 @@
+import { ResearchSource } from "@/types/memory";
+
 export interface Message {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
+  extra_data?: { sources?: ResearchSource[] } | null;
   created_at: string;
 }
 
@@ -9,6 +12,7 @@ export interface Conversation {
   id: string;
   title: string | null;
   model_name: string;
+  conversation_type?: string | null;
   updated_at: string;
   preview: string;
 }
@@ -17,6 +21,7 @@ export interface ConversationDetail {
   id: string;
   title: string | null;
   model_name: string;
+  conversation_type?: string | null;
   created_at: string;
   messages: Message[];
 }

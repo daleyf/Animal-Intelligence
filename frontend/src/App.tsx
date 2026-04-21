@@ -58,16 +58,11 @@ function AppInner() {
   }
 
   return (
-    <>
-      {/* Ollama disconnection banner — non-blocking, shown above app shell */}
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+      {/* Ollama disconnection banner — in normal flow so it doesn't push content off-screen */}
       {!ollamaConnected && (
         <div
           style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 1000,
             background: "var(--color-danger)",
             color: "#fff",
             fontSize: "12px",
@@ -75,6 +70,8 @@ function AppInner() {
             display: "flex",
             alignItems: "center",
             gap: "10px",
+            flexShrink: 0,
+            zIndex: 1000,
           }}
         >
           <span style={{ fontWeight: 600 }}>Ollama not connected</span>
@@ -86,7 +83,7 @@ function AppInner() {
           </span>
         </div>
       )}
-      <div style={{ paddingTop: ollamaConnected ? 0 : "36px", height: "100%", display: "flex", flexDirection: "column" }}>
+      <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <Routes>
           <Route element={<AppShell />}>
             <Route path="/" element={<ChatPage />} />
@@ -105,7 +102,7 @@ function AppInner() {
           </Route>
         </Routes>
       </div>
-    </>
+    </div>
   );
 }
 
