@@ -15,7 +15,7 @@ export function StepLocation({ home, onChangeHome, onNext, onBack }: Props) {
         Where are you based?
       </h2>
       <p style={{ fontSize: "14px", color: "var(--color-text-muted)", marginBottom: "24px" }}>
-        Used for weather data in your morning report. Optional.
+        Used for weather data in your daily report. Optional.
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "24px" }}>

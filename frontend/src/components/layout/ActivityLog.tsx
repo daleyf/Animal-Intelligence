@@ -7,7 +7,6 @@ const TOOL_NAMES = [
   "web_search",
   "memory",
   "weather",
-  "news",
   "calendar",
 ];
 
@@ -15,7 +14,7 @@ const TOOL_LABELS: Record<string, string> = {
   web_search: "Web Search",
   memory: "Memory",
   weather: "Weather",
-  news: "News",
+  news: "Web Search",
   calendar: "Calendar",
 };
 
@@ -145,7 +144,7 @@ export function ActivityLog() {
           <div style={{ padding: "40px 20px", textAlign: "center" }}>
             <div style={{ fontSize: "13px", color: "var(--color-text-muted)" }}>No activity yet</div>
             <div style={{ fontSize: "11px", color: "var(--color-text-muted)", marginTop: "4px" }}>
-              Tool calls from web search, memory, weather, and more will appear here.
+              Tool calls from web search, memory, weather, calendar, and more will appear here.
             </div>
           </div>
         ) : (

@@ -24,7 +24,7 @@ export interface MemorySearchResponse {
 
 export interface ReportStatus {
   weather: boolean;
-  news: boolean;  // true when OLLAMA_API_KEY is set (powers personalized news)
+  news: boolean;
   web_search: boolean;
   calendar: boolean;
   calendar_configured: boolean;
