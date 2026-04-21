@@ -72,10 +72,7 @@ class ResearchAgent:
         if not self._search.available:
             yield ResearchEvent(
                 type="error",
-                message=(
-                    "No Ollama API key configured. "
-                    "Add OLLAMA_API_KEY in Settings → Integrations."
-                ),
+                message="No Ollama API key configured. Add OLLAMA_API_KEY in Settings → Integrations.",
             )
             return
 
