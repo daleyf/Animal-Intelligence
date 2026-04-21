@@ -7,6 +7,7 @@ don't require any external services, so we can test the core logic in isolation.
 from unittest.mock import MagicMock
 from core.prompt_builder import build_system_prompt, build_context_messages, estimate_tokens
 
+
 # Estimate tokens tests
 class TestEstimateTokens:
     def test_empty_string(self):
@@ -57,6 +58,7 @@ class TestBuildSystemPrompt:
         # Should not raise even with all-None profile
         result = build_system_prompt(profile=profile, personalization_enabled=True)
         assert "Anchorpoint" in result
+
 
 # Build context messages tests
 class TestBuildContextMessages:

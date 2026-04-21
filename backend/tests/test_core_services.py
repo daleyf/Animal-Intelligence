@@ -170,6 +170,7 @@ class TestSettingsRoute:
 
         client.put("/api/v1/settings", json={"context_window_tokens": "4096"})
 
+
 # Profile route
 class TestProfileRoute:
     def test_get_profile_returns_shape(self, client):
@@ -228,6 +229,7 @@ class TestConversationsRoute:
         assert resp.status_code == 200
         data = resp.json()
         assert "deleted" in data
+
 
 # Models route
 class TestModelsRoute:

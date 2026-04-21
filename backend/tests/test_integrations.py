@@ -169,7 +169,7 @@ def test_activity_filter_by_tool(client, test_db_engine):
 
     db = sm(bind=test_db_engine)()
     try:
-        log_tool_call(db, "news", input_summary="categories=tech", success=False, error_message="API key missing")
+        log_tool_call(db, "news", input_summary="categories=tech", success=False, error_message="API key missing", duration_ms=30)
     finally:
         db.close()
 

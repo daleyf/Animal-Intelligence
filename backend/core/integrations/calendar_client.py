@@ -155,8 +155,8 @@ class CalendarClient:
 
             service = build("calendar", "v3", credentials=creds)
             today = date.today()
-            time_min = datetime(today.year, today.month, today.day, 0, 0, 0, tzinfo=timezone.utc).isoformat()
-            time_max = datetime(today.year, today.month, today.day, 23, 59, 59, tzinfo=timezone.utc).isoformat()
+            time_min = datetime(today.year, today.month, today.day, 0, 0, 0, tzinfo=timezone.utc).isoformat()  # noqa: E501
+            time_max = datetime(today.year, today.month, today.day, 23, 59, 59, tzinfo=timezone.utc).isoformat()  # noqa: E501
 
             result = (
                 service.events()
