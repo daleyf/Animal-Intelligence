@@ -1,9 +1,8 @@
 """
-Integration tests — voice, activity log, report schedule, tool logger,
-and external API failure scenarios.
+Integration tests:
+voice, activity log, report schedule, tool logger, and external API failure scenarios.
 
-All tests use in-memory SQLite and mock external services (Ollama, weather,
-news, commute, calendar).  No real network calls are made.
+using an in-memory SQLite database.
 """
 
 import httpx
@@ -17,13 +16,10 @@ from db.models import Base, AppSettings
 from db.database import DEFAULT_SETTINGS
 
 
-# ── Shared fixtures ────────────────────────────────────────────────────────────
+# Shared fixtures
 
 @pytest.fixture(scope="module")
 def test_db_engine():
-    # StaticPool ensures all sessions share the same connection so tables
-    # created by create_all() are visible to every subsequent query, including
-    # those dispatched to FastAPI's sync-route thread pool.
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -70,7 +66,7 @@ def client(test_db_engine):
     app.dependency_overrides.clear()
 
 
-# ── Voice routes ───────────────────────────────────────────────────────────────
+# Voice routes
 
 def test_voice_profiles(client):
     resp = client.get("/api/v1/voice/profiles")
@@ -133,10 +129,10 @@ def test_voice_settings_rate_out_of_range(client):
     assert resp.status_code == 422
 
 
-# ── Activity log routes ────────────────────────────────────────────────────────
+# Activity log routes
 
 def test_activity_list_empty(client):
-    # Clear first so other tests don't bleed in
+    # Clean slate
     client.delete("/api/v1/activity")
     resp = client.get("/api/v1/activity")
     assert resp.status_code == 200
@@ -153,7 +149,7 @@ def test_activity_log_written_by_tool_logger(client, test_db_engine):
 
     db = sm(bind=test_db_engine)()
     try:
-        log_tool_call(db, "weather", input_summary="location=Pittsburgh", success=True, duration_ms=120)
+        log_tool_call(db, "weather", input_summary="location=Pittsburgh", success=True, duration_ms=120)  # noqa: E501
     finally:
         db.close()
 
@@ -173,7 +169,7 @@ def test_activity_filter_by_tool(client, test_db_engine):
 
     db = sm(bind=test_db_engine)()
     try:
-        log_tool_call(db, "news", input_summary="categories=tech", success=False, error_message="API key missing")
+        log_tool_call(db, "news", input_summary="categories=tech", success=False, error_message="API key missing", duration_ms=30)  # noqa: E501
     finally:
         db.close()
 
@@ -203,8 +199,7 @@ def test_activity_clear(client, test_db_engine):
     assert resp.json()["total"] == 0
 
 
-# ── Report schedule routes ─────────────────────────────────────────────────────
-
+# Report schedule routes
 def test_report_schedule_get(client):
     resp = client.get("/api/v1/report/schedule")
     assert resp.status_code == 200
@@ -238,8 +233,7 @@ def test_report_latest(client):
     assert "generated_at" in data
 
 
-# ── Tool logger unit tests ─────────────────────────────────────────────────────
-
+# Tool logger unit tests
 def test_tool_logger_success(test_db_engine):
     from core.tool_logger import log_tool_call
     from db.models import ToolLog
@@ -294,7 +288,7 @@ def test_tool_logger_truncates_long_input(test_db_engine):
         db.close()
 
 
-# ── External API failure scenarios ─────────────────────────────────────────────
+# API failures
 
 def test_web_search_no_api_key_returns_empty():
     """When OLLAMA_API_KEY is empty, search() returns [] without raising."""

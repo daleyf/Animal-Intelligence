@@ -1,11 +1,14 @@
-"""Unit tests for prompt_builder utilities."""
+"""
+Unit tests for prompt_builder utilities.
 
-import pytest
+don't require any external services, so we can test the core logic in isolation.
+"""
+
 from unittest.mock import MagicMock
-
 from core.prompt_builder import build_system_prompt, build_context_messages, estimate_tokens
 
 
+# Estimate tokens tests
 class TestEstimateTokens:
     def test_empty_string(self):
         assert estimate_tokens("") == 1
@@ -19,6 +22,7 @@ class TestEstimateTokens:
         assert long > short
 
 
+# Build system prompt tests
 class TestBuildSystemPrompt:
     def test_no_profile(self):
         result = build_system_prompt(profile=None, personalization_enabled=True)
@@ -56,6 +60,7 @@ class TestBuildSystemPrompt:
         assert "Anchorpoint" in result
 
 
+# Build context messages tests
 class TestBuildContextMessages:
     def _make_message(self, role: str, content: str):
         msg = MagicMock()

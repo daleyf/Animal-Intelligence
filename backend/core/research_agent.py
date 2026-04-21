@@ -72,7 +72,9 @@ class ResearchAgent:
         if not self._search.available:
             yield ResearchEvent(
                 type="error",
-                message="No Ollama API key configured. Add OLLAMA_API_KEY in Settings → Integrations.",
+                message=(
+                    "No Ollama API key. Add OLLAMA_API_KEY in Settings → Integrations."
+                ),
             )
             return
 
@@ -118,7 +120,7 @@ class ResearchAgent:
                     "You are a research assistant. "
                     "Answer based ONLY on the provided sources. "
                     "NEVER invent, assume, or reference sources that were not given to you. "
-                    "CITATION RULE: after each claim, write the source number inside square brackets. "
+                    "CITATION RULE: after each claim, write source number in square brackets. "
                     "The ONLY allowed formats are [1], [2], [3], etc. "
                     "NEVER write [N1], [N2], [Source 1], [Ref 1], (1), or any other variation. "
                     "Just a plain number inside square brackets: [1], [2], [3]."

@@ -7,7 +7,6 @@ GET  /activity             → paginated tool log entries (newest first)
 DELETE /activity           → clear all log entries
 """
 
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query

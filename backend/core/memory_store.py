@@ -11,6 +11,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
+from core.config import settings as _settings
 
 if TYPE_CHECKING:
     pass
@@ -227,6 +228,4 @@ class MemoryStore:
 
 
 # Module-level singleton shared across all requests.
-from core.config import settings as _settings
-
 memory_store = MemoryStore(persist_directory=_settings.chroma_db_path)

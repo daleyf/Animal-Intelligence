@@ -15,7 +15,7 @@ GET  /report/calendar/events     → today's calendar events
 import json
 from typing import AsyncIterator
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session

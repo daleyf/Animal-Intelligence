@@ -15,8 +15,7 @@ from db.models import Base, AppSettings
 from db.database import DEFAULT_SETTINGS
 
 
-# ── Shared fixtures ────────────────────────────────────────────────────────────
-
+# Shared fixtures
 @pytest.fixture(scope="module")
 def test_db_engine():
     # StaticPool ensures all sessions share the same connection so tables
@@ -67,8 +66,7 @@ def client(test_db_engine):
     app.dependency_overrides.clear()
 
 
-# ── PII Sanitizer ─────────────────────────────────────────────────────────────
-
+# PII Sanitizer tests
 class TestPIISanitizer:
     def test_clean_string_unchanged(self):
         from core.pii_sanitizer import sanitize
@@ -148,8 +146,7 @@ class TestPIISanitizer:
         assert result == "hello world"
 
 
-# ── Encryption utilities ──────────────────────────────────────────────────────
-
+# Encryption tests
 class TestEncryption:
     def test_encrypt_decrypt_roundtrip(self):
         from core.encryption import encrypt_field, decrypt_field
@@ -181,8 +178,7 @@ class TestEncryption:
         assert a != b
 
 
-# ── Context window optimisation ────────────────────────────────────────────────
-
+# Optimisation of context window tests
 class TestContextWindowOptimisation:
     def _msg(self, role, content):
         from unittest.mock import MagicMock
@@ -210,8 +206,6 @@ class TestContextWindowOptimisation:
             self._msg("user", "recent question"),
             self._msg("assistant", "recent answer"),
         ]
-        # Use response_buffer=0 so the tiny max_tokens still leaves room for
-        # the history allocation logic (not the emergency early-exit branch).
         result, _ = build_context_messages(
             msgs, system_prompt="", max_tokens=100,
             response_buffer=0, min_recent_messages=2,
@@ -238,8 +232,7 @@ class TestContextWindowOptimisation:
         assert stats["budget_exhausted"] is True
 
 
-# ── Hardware recommendation ────────────────────────────────────────────────────
-
+# Hardware recommendation endpoint tests
 def test_hardware_recommendation_endpoint(client):
     resp = client.get("/api/v1/models/recommendation")
     assert resp.status_code == 200
@@ -263,8 +256,7 @@ def test_hardware_recommendation_model_is_known(client):
     assert model_name in known_names
 
 
-# ── Custom voice profiles ─────────────────────────────────────────────────────
-
+# Test custom voice profiles
 def test_custom_profiles_initially_empty(client):
     resp = client.get("/api/v1/voice/custom-profiles")
     assert resp.status_code == 200
@@ -285,7 +277,8 @@ def test_create_custom_profile(client):
 
 
 def test_create_and_list_custom_profiles(client):
-    client.post("/api/v1/voice/custom-profiles", json={"name": "Energetic", "rate": 1.5, "pitch": 1.2})
+    client.post("/api/v1/voice/custom-profiles",
+                json={"name": "Energetic", "rate": 1.5, "pitch": 1.2})
     resp = client.get("/api/v1/voice/custom-profiles")
     assert resp.status_code == 200
     names = [p["name"] for p in resp.json()["profiles"]]

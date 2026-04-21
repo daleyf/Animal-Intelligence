@@ -106,8 +106,9 @@ def _build_memory_context(user_message: str, memory_enabled: bool) -> str:
     lines = ["Relevant context from past conversations:"]
     for m in relevant:
         ts = m.metadata.get("timestamp", "")[:10]  # YYYY-MM-DD
-        lines.append(f"[{ts}] {m.metadata.get('user_message', '')} → {m.metadata.get('assistant_response', '')}")
-
+        user_msg = m.metadata.get("user_message", "")
+        asst_msg = m.metadata.get("assistant_response", "")
+        lines.append(f"[{ts}] {user_msg} → {asst_msg}")
     return "\n".join(lines)
 
 
