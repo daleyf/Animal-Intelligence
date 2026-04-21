@@ -12,6 +12,7 @@ SSE event types:
 """
 
 import json
+import uuid
 from typing import AsyncIterator
 
 from fastapi import APIRouter, Depends
@@ -100,14 +101,25 @@ async def research(
         # Emit conversation_id first so the client can link follow-up messages
         yield _sse({"type": "conversation_id", "conversation_id": convo.id})
 
+        session_id = str(uuid.uuid4())
+        queries_used: list[str] = []
         success = False
+
         try:
             async for event in agent.conduct_research(
                 question=request.question,
                 model=active_model,
             ):
-                if event.type == "token":
+                if event.type == "queries_generated":
+                    # Capture sub-queries for detailed logging; don't forward to client
+                    try:
+                        queries_used = json.loads(event.message)
+                    except Exception:
+                        pass
+
+                elif event.type == "token":
                     yield _sse({"type": "token", "content": event.content})
+
                 elif event.type == "done":
                     success = True
 
@@ -125,12 +137,16 @@ async def research(
                         db, "web_search",
                         input_summary=f"question={sanitized_question[:200]!r}",
                         success=True,
+                        session_id=session_id,
+                        sub_queries=queries_used if queries_used else None,
+                        data_destination="ollama.com/api/web_search",
                     )
                     yield _sse({
                         "type": "done",
                         "full_content": event.full_content,
                         "sources": event.sources,
                     })
+
                 elif event.type == "error":
                     # Remove the placeholder conversation — nothing was saved
                     conv_crud.soft_delete_conversation(db, convo.id)
@@ -138,12 +154,17 @@ async def research(
                         db, "web_search",
                         input_summary=f"question={sanitized_question[:200]!r}",
                         success=False, error_message=event.message,
+                        session_id=session_id,
+                        sub_queries=queries_used if queries_used else None,
+                        data_destination="ollama.com/api/web_search",
                     )
                     yield _sse({"type": "error", "message": event.message})
                     return
+
                 else:
                     # status event — relay as-is
                     yield _sse({"type": "status", "message": event.message})
+
         except Exception as exc:
             conv_crud.soft_delete_conversation(db, convo.id)
             if not success:
@@ -151,6 +172,9 @@ async def research(
                     db, "web_search",
                     input_summary=f"question={sanitized_question[:200]!r}",
                     success=False, error_message=str(exc),
+                    session_id=session_id,
+                    sub_queries=queries_used if queries_used else None,
+                    data_destination="ollama.com/api/web_search",
                 )
             yield _sse({"type": "error", "message": f"Research failed: {exc}"})
 

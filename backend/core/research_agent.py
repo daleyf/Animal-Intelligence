@@ -68,6 +68,9 @@ class ResearchAgent:
             yield ResearchEvent(type="error", message="Could not formulate search queries.")
             return
 
+        # Emit the generated queries so the SSE route can log them individually
+        yield ResearchEvent(type="queries_generated", message=json.dumps(queries))
+
         # ── Step 2: execute searches ───────────────────────────────────────────
         if not self._search.available:
             yield ResearchEvent(

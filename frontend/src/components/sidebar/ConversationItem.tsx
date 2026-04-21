@@ -33,10 +33,10 @@ export function ConversationItem({ conversation }: Props) {
 
   const handleSelect = () => {
     if (isEditing) return;
+    setActiveConversation(conversation.id);
     if (conversation.conversation_type === "research") {
       navigate(`/research?id=${conversation.id}`);
     } else {
-      setActiveConversation(conversation.id);
       navigate("/");
     }
   };

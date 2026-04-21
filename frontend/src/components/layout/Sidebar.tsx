@@ -8,7 +8,7 @@ import anchorpointLogo from "@/assets/AnchorpointLogo.svg";
 const NAV_ITEMS = [
   { label: "Chat", path: "/", icon: ChatIcon },
   { label: "Research", path: "/research", icon: SearchIcon },
-  { label: "Morning Report", path: "/report", icon: SunIcon },
+  { label: "Daily Report", path: "/report", icon: SunIcon },
   { label: "Activity Log", path: "/activity", icon: ListIcon },
 ];
 

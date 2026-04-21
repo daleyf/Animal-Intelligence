@@ -208,10 +208,7 @@ export function ReportPage() {
             />
           ) : !isGenerating ? (
             <div style={{ textAlign: "center", paddingTop: "60px" }}>
-              <div style={{ fontSize: "24px", marginBottom: "12px", fontWeight: 600 }}>Daily</div>
-              <div style={{ fontSize: "14px", color: "var(--color-text-muted)", marginBottom: "6px" }}>
-                No report yet
-              </div>
+              <div style={{ fontSize: "24px", marginBottom: "12px", fontWeight: 600 }}>No Daily Reports</div>
               <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>
                 Click "Generate report" to create your daily briefing
               </div>
