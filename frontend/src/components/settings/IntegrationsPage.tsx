@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchReportStatus, fetchCalendarAuthUrl, submitCalendarCode, disconnectCalendar } from "@/api/memory";
+import {
+  disconnectCalendar,
+  fetchCalendarAuthUrl,
+  fetchReportStatus,
+  submitCalendarCode,
+} from "@/api/memory";
 import { useToast } from "@/components/ui/Toast";
 
 export function IntegrationsPage() {
@@ -12,26 +17,24 @@ export function IntegrationsPage() {
     staleTime: 30_000,
   });
 
-  // Google Calendar OAuth code (from URL after redirect)
   const [oauthCode, setOauthCode] = useState("");
   const [connecting, setConnecting] = useState(false);
 
-  // On mount, check if we were redirected back with a ?code= param
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     if (code) {
       setOauthCode(code);
-      // Clean up URL without reload
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
 
   const handleCalendarConnect = async () => {
     if (!status?.calendar_configured) {
-      show("Google OAuth not configured — add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env", "error");
+      show("Google OAuth not configured - add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env", "error");
       return;
     }
+
     try {
       const { auth_url, error } = await fetchCalendarAuthUrl();
       if (error || !auth_url) {
@@ -46,6 +49,7 @@ export function IntegrationsPage() {
 
   const handleSubmitCode = async () => {
     if (!oauthCode.trim()) return;
+
     setConnecting(true);
     try {
       const result = await submitCalendarCode(oauthCode.trim());
@@ -70,33 +74,31 @@ export function IntegrationsPage() {
   };
 
   if (isLoading) {
-    return <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>Loading…</div>;
+    return <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>Loading...</div>;
   }
 
   return (
     <>
       <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
         <div style={{ fontSize: "13px", color: "var(--color-text-muted)" }}>
-          Configure external integrations for the Morning Report. API keys go in your{" "}
-          <code style={{ fontSize: "11px" }}>.env</code> file — they never leave your device.
+          Configure external integrations for the Daily Report. API keys go in your{" "}
+          <code style={{ fontSize: "11px" }}>.env</code> file - they never leave your device.
         </div>
 
-        {/* Status grid */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
           <IntegrationCard
             name="Weather"
-            description="OpenWeatherMap · Set OPENWEATHERMAP_API_KEY"
+            description="OpenWeatherMap - set OPENWEATHERMAP_API_KEY"
             active={status?.weather ?? false}
           />
           <IntegrationCard
-            name="Web Search & News"
-            description="Ollama API · Set OLLAMA_API_KEY (ollama.com/settings/keys)"
+            name="Web Search"
+            description="Ollama API - set OLLAMA_API_KEY (ollama.com/settings/keys)"
             active={status?.web_search ?? false}
-            note="Powers research queries + personalized news based on your interests"
+            note="Powers research queries for your report"
           />
         </div>
 
-        {/* Google Calendar */}
         <div
           style={{
             background: "var(--color-surface-2)",
@@ -105,23 +107,29 @@ export function IntegrationsPage() {
             padding: "16px",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+          <div
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}
+          >
             <div>
-              <div style={{ fontSize: "13px", fontWeight: 500, color: "var(--color-text)", marginBottom: "2px" }}>
+              <div
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: "var(--color-text)",
+                  marginBottom: "2px",
+                }}
+              >
                 Google Calendar
               </div>
               <div style={{ fontSize: "11px", color: "var(--color-text-muted)" }}>
-                {status?.calendar ? "Connected — events included in morning report" : "Not connected"}
+                {status?.calendar ? "Connected - events included in daily report" : "Not connected"}
               </div>
             </div>
             <StatusDot active={status?.calendar ?? false} />
           </div>
 
           {status?.calendar ? (
-            <button
-              onClick={handleDisconnect}
-              style={ghostButtonStyle}
-            >
+            <button onClick={handleDisconnect} style={ghostButtonStyle}>
               Disconnect
             </button>
           ) : (
@@ -138,13 +146,13 @@ export function IntegrationsPage() {
                     style={inputStyle}
                   />
                   <button onClick={handleSubmitCode} disabled={connecting} style={accentButtonStyle}>
-                    {connecting ? "Connecting…" : "Submit"}
+                    {connecting ? "Connecting..." : "Submit"}
                   </button>
                 </div>
               )}
               {!status?.calendar_configured && (
                 <div style={{ fontSize: "11px", color: "var(--color-text-muted)" }}>
-                  Add GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET to .env to enable Calendar.
+                  Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env to enable Calendar.
                 </div>
               )}
             </div>
@@ -181,7 +189,18 @@ function IntegrationCard({
         <StatusDot active={active} />
       </div>
       <div style={{ fontSize: "11px", color: "var(--color-text-muted)" }}>{description}</div>
-      {note && <div style={{ fontSize: "11px", color: "var(--color-text-muted)", marginTop: "2px", fontStyle: "italic" }}>{note}</div>}
+      {note && (
+        <div
+          style={{
+            fontSize: "11px",
+            color: "var(--color-text-muted)",
+            marginTop: "2px",
+            fontStyle: "italic",
+          }}
+        >
+          {note}
+        </div>
+      )}
     </div>
   );
 }

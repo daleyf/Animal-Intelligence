@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAppStore } from "@/store/appStore";
+import { useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/api/client";
+import { useAppStore } from "@/store/appStore";
 
 interface ScheduleSettings {
   enabled: boolean;
@@ -13,31 +13,45 @@ interface LatestReport {
   generated_at: string;
 }
 
-function streamReport(model: string, callbacks: {
-  onToken: (t: string) => void;
-  onDone: () => void;
-  onError: (msg: string) => void;
-}, signal: AbortSignal) {
+function streamReport(
+  model: string,
+  callbacks: {
+    onToken: (t: string) => void;
+    onDone: () => void;
+    onError: (msg: string) => void;
+  },
+  signal: AbortSignal,
+) {
   fetch(`/api/v1/report?model=${encodeURIComponent(model)}`, { signal })
     .then(async (resp) => {
-      if (!resp.body) { callbacks.onError("No response body"); return; }
+      if (!resp.body) {
+        callbacks.onError("No response body");
+        return;
+      }
+
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buf = "";
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+
         buf += decoder.decode(value, { stream: true });
         const lines = buf.split("\n");
         buf = lines.pop() ?? "";
+
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
+
           try {
             const ev = JSON.parse(line.slice(6));
             if (ev.type === "token") callbacks.onToken(ev.content);
             else if (ev.type === "done") callbacks.onDone();
             else if (ev.type === "error") callbacks.onError(ev.message);
-          } catch { /* skip malformed */ }
+          } catch {
+            // Skip malformed events from the stream.
+          }
         }
       }
     })
@@ -54,14 +68,12 @@ export function ReportPage() {
   const [error, setError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
 
-  // Load latest cached report
   const { data: latest } = useQuery({
     queryKey: ["report-latest"],
     queryFn: () => apiFetch<LatestReport>("/report/latest"),
     staleTime: 30_000,
   });
 
-  // Schedule settings
   const { data: schedule } = useQuery({
     queryKey: ["report-schedule"],
     queryFn: () => apiFetch<ScheduleSettings>("/report/schedule"),
@@ -83,18 +95,27 @@ export function ReportPage() {
       setIsGenerating(false);
       return;
     }
+
     setContent("");
     setError("");
     setIsGenerating(true);
+
     const controller = new AbortController();
     abortRef.current = controller;
     let accumulated = "";
+
     streamReport(
       activeModel,
       {
-        onToken: (t) => { accumulated += t; setContent(accumulated); },
+        onToken: (t) => {
+          accumulated += t;
+          setContent(accumulated);
+        },
         onDone: () => setIsGenerating(false),
-        onError: (msg) => { setError(msg); setIsGenerating(false); },
+        onError: (msg) => {
+          setError(msg);
+          setIsGenerating(false);
+        },
       },
       controller.signal,
     );
@@ -109,9 +130,7 @@ export function ReportPage() {
 
   return (
     <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
-      {/* Main report area */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* Header */}
         <div
           style={{
             padding: "16px 24px",
@@ -124,7 +143,7 @@ export function ReportPage() {
         >
           <div>
             <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--color-text)" }}>
-              Morning Report
+              Daily Report
             </div>
             {generatedAt && (
               <div style={{ fontSize: "11px", color: "var(--color-text-muted)", marginTop: "2px" }}>
@@ -154,15 +173,24 @@ export function ReportPage() {
                 Stop
               </>
             ) : (
-              <>☀ Generate report</>
+              <>Generate report</>
             )}
           </button>
         </div>
 
-        {/* Content */}
         <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
           {error && (
-            <div style={{ padding: "10px 14px", background: "var(--color-surface-2)", border: "1px solid var(--color-danger)", borderRadius: "var(--radius-sm)", fontSize: "12px", color: "var(--color-danger)", marginBottom: "16px" }}>
+            <div
+              style={{
+                padding: "10px 14px",
+                background: "var(--color-surface-2)",
+                border: "1px solid var(--color-danger)",
+                borderRadius: "var(--radius-sm)",
+                fontSize: "12px",
+                color: "var(--color-danger)",
+                marginBottom: "16px",
+              }}
+            >
               {error}
             </div>
           )}
@@ -180,7 +208,7 @@ export function ReportPage() {
             />
           ) : !isGenerating ? (
             <div style={{ textAlign: "center", paddingTop: "60px" }}>
-              <div style={{ fontSize: "32px", marginBottom: "12px" }}>☀</div>
+              <div style={{ fontSize: "24px", marginBottom: "12px", fontWeight: 600 }}>Daily</div>
               <div style={{ fontSize: "14px", color: "var(--color-text-muted)", marginBottom: "6px" }}>
                 No report yet
               </div>
@@ -190,15 +218,22 @@ export function ReportPage() {
             </div>
           ) : null}
           {isGenerating && !displayContent && (
-            <div style={{ display: "flex", gap: "6px", alignItems: "center", color: "var(--color-text-muted)", fontSize: "12px" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "6px",
+                alignItems: "center",
+                color: "var(--color-text-muted)",
+                fontSize: "12px",
+              }}
+            >
               <span className="streaming-cursor" style={{ background: "var(--color-accent)" }} />
-              Generating your morning report…
+              Generating your daily report...
             </div>
           )}
         </div>
       </div>
 
-      {/* Schedule sidebar */}
       <div
         style={{
           width: "240px",
@@ -211,11 +246,21 @@ export function ReportPage() {
           overflowY: "auto",
         }}
       >
-        <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.8px" }}>
+        <div
+          style={{
+            fontSize: "11px",
+            fontWeight: 600,
+            color: "var(--color-text-muted)",
+            textTransform: "uppercase",
+            letterSpacing: "0.8px",
+          }}
+        >
           Auto-Schedule
         </div>
 
-        <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
+        <label
+          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+        >
           <span style={{ fontSize: "12px", color: "var(--color-text)" }}>Daily auto-generate</span>
           <input
             type="checkbox"
@@ -229,13 +274,13 @@ export function ReportPage() {
 
         {schedule?.enabled && (
           <div>
-            <div style={{ fontSize: "11px", color: "var(--color-text-muted)", marginBottom: "6px" }}>Time (UTC)</div>
+            <div style={{ fontSize: "11px", color: "var(--color-text-muted)", marginBottom: "6px" }}>
+              Time (UTC)
+            </div>
             <input
               type="time"
               value={schedule.time}
-              onChange={(e) =>
-                scheduleMutation.mutate({ enabled: true, time: e.target.value })
-              }
+              onChange={(e) => scheduleMutation.mutate({ enabled: true, time: e.target.value })}
               style={{
                 width: "100%",
                 background: "var(--color-bg)",
@@ -256,21 +301,26 @@ export function ReportPage() {
         )}
 
         <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "16px" }}>
-          <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>
+          <div
+            style={{
+              fontSize: "11px",
+              fontWeight: 600,
+              color: "var(--color-text-muted)",
+              textTransform: "uppercase",
+              letterSpacing: "0.8px",
+              marginBottom: "10px",
+            }}
+          >
             Integrations
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            {[
-              { label: "Weather", key: "weather" },
-              { label: "News", key: "news" },
-              { label: "Calendar", key: "calendar" },
-            ].map(({ label }) => (
+            {["Weather", "Calendar"].map((label) => (
               <a
                 key={label}
                 href="/settings/integrations"
                 style={{ fontSize: "11px", color: "var(--color-accent)", textDecoration: "none" }}
               >
-                Configure {label} →
+                Configure {label} {"->"}
               </a>
             ))}
           </div>

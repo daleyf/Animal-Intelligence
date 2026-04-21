@@ -104,12 +104,13 @@ export function ConversationItem({ conversation }: Props) {
           padding: "8px 10px",
           borderRadius: "var(--radius-sm)",
           background: isActive
-            ? "var(--color-surface-2)"
+            ? "var(--color-accent-dim)"
             : hovered
-            ? "var(--color-surface-2)"
+            ? "rgba(255, 255, 255, 0.03)"
             : "transparent",
+          boxShadow: isActive ? "inset 0 0 0 1px rgba(0, 120, 255, 0.22)" : "none",
           cursor: isEditing ? "default" : "pointer",
-          transition: "background 0.1s",
+          transition: "background 0.1s, box-shadow 0.1s",
           marginBottom: "2px",
         }}
       >
@@ -151,7 +152,7 @@ export function ConversationItem({ conversation }: Props) {
               style={{
                 fontSize: "13px",
                 fontWeight: isActive ? 500 : 400,
-                color: "var(--color-text)",
+                color: isActive ? "var(--color-text-strong)" : "var(--color-text)",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
