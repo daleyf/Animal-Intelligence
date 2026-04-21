@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAppStore } from "@/store/appStore";
 import { useModels } from "@/hooks/useModels";
 import { setActiveModel } from "@/api/models";
@@ -7,8 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 
 export function TopBar() {
-  const { activeModel, setActiveModel: storeSetActiveModel, setActiveConversation, ollamaConnected } =
-    useAppStore();
+  const { activeModel, setActiveModel: storeSetActiveModel, ollamaConnected } = useAppStore();
   const { data: modelsData } = useModels();
 
   // Sync active model to an installed model if the stored value isn't available
@@ -21,7 +19,6 @@ export function TopBar() {
       storeSetActiveModel(corrected);
     }
   }, [modelsData, activeModel, storeSetActiveModel]);
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { show, ToastContainer } = useToast();
 
@@ -29,8 +26,6 @@ export function TopBar() {
     const model = e.target.value;
     storeSetActiveModel(model);
     await setActiveModel(model);
-    setActiveConversation(null);
-    navigate("/");
     queryClient.invalidateQueries({ queryKey: ["models"] });
     show(`Switched to ${model}`, "info");
   };
