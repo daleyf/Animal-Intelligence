@@ -4,11 +4,10 @@ import { useConversation } from "@/hooks/useConversations";
 import { useChat } from "@/hooks/useChat";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
-import { ResearchPanel } from "./ResearchPanel";
 import { DisplayMessage } from "@/types/chat";
 
 export function ChatPage() {
-  const { activeConversationId, isGenerating, researchOpen, setResearchOpen } = useAppStore();
+  const { activeConversationId, isGenerating } = useAppStore();
   const { data: conversationData } = useConversation(activeConversationId);
   const { messages, sendMessage, loadConversation, clearMessages } = useChat();
 
@@ -42,14 +41,10 @@ export function ChatPage() {
         height: "100%",
       }}
     >
-      {/* Main chat column */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <MessageList messages={messages} isGenerating={isGenerating} />
         <ChatInput onSend={sendMessage} />
       </div>
-
-      {/* Sliding research panel */}
-      {researchOpen && <ResearchPanel onClose={() => setResearchOpen(false)} />}
     </div>
   );
 }

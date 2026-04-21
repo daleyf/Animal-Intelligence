@@ -63,6 +63,10 @@ class WebSearchClient:
             follow_redirects=True,
         )
 
+    @property
+    def available(self) -> bool:
+        return bool(settings.ollama_api_key)
+
     def _auth_headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {settings.ollama_api_key}"}
 

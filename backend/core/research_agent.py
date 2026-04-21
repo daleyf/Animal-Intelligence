@@ -69,6 +69,13 @@ class ResearchAgent:
             return
 
         # ── Step 2: execute searches ───────────────────────────────────────────
+        if not self._search.available:
+            yield ResearchEvent(
+                type="error",
+                message="No Ollama API key configured. Add OLLAMA_API_KEY in Settings → Integrations.",
+            )
+            return
+
         all_results: list[SearchResult] = []
         for q in queries:
             yield ResearchEvent(type="status", message=f"Searching: {q}")
