@@ -230,7 +230,6 @@ Animal-Intelligence/
 | Python      | 3.13+   | Backend |
 | Node.js     | 20+     | Frontend |
 | Ollama      | Latest  | Must be running locally |
-| Docker      | Any     | Optional — not required for any core feature |
 
 ---
 
