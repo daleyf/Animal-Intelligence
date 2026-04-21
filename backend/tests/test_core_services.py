@@ -225,10 +225,27 @@ class TestConversationsRoute:
         assert "conversations" in data
 
     def test_clear_all_conversations(self, client):
+        client.put(
+            "/api/v1/profile",
+            json={
+                "name": "Alice",
+                "home_location": "Pittsburgh, PA",
+                "interests": ["hiking"],
+                "projects": ["Anchorpoint"],
+                "onboarding_done": True,
+            },
+        )
+
         resp = client.delete("/api/v1/conversations")
         assert resp.status_code == 200
         data = resp.json()
         assert "deleted" in data
+        assert data["profile_reset"] is True
+
+        profile = client.get("/api/v1/profile")
+        assert profile.status_code == 200
+        assert profile.json()["onboarding_done"] is False
+        assert profile.json()["name"] is None
 
 
 # Models route

@@ -2,10 +2,14 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from api.dependencies import get_db
 from db.crud import conversations as conv_crud
+from db.crud import profile as profile_crud
+from db.models import ToolLog
+from core.memory_store import memory_store
 
 router = APIRouter()
 
@@ -111,8 +115,23 @@ def rename_conversation(
 
 @router.delete("/conversations")
 def clear_all_conversations(db: Session = Depends(get_db)):
-    count = conv_crud.hard_delete_all_conversations(db)
-    return {"deleted": count}
+    deleted_conversations = conv_crud.hard_delete_all_conversations(db)
+    profile_crud.reset_profile(db)
+
+    deleted_activity = db.execute(delete(ToolLog)).rowcount or 0
+    db.commit()
+
+    cleared_memories = False
+    if memory_store.available:
+        memory_store.clear_all()
+        cleared_memories = True
+
+    return {
+        "deleted": deleted_conversations,
+        "activity_deleted": deleted_activity,
+        "memories_cleared": cleared_memories,
+        "profile_reset": True,
+    }
 
 
 @router.delete("/conversations/{conversation_id}")

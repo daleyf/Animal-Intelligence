@@ -12,6 +12,7 @@ interface AppStore {
   setGenerating: (generating: boolean, controller?: AbortController) => void;
   stopGeneration: () => void;
   setOllamaConnected: (connected: boolean) => void;
+  resetForOnboarding: () => void;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -40,4 +41,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   setOllamaConnected: (connected) => set({ ollamaConnected: connected }),
+
+  resetForOnboarding: () => {
+    const { abortController } = get();
+    if (abortController) {
+      abortController.abort();
+    }
+    set({
+      activeConversationId: null,
+      isGenerating: false,
+      abortController: null,
+    });
+  },
 }));

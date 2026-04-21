@@ -23,7 +23,12 @@ export function deleteConversation(id: string) {
 }
 
 export function clearAllConversations() {
-  return apiFetch<{ deleted: number }>(`/conversations`, {
+  return apiFetch<{
+    deleted: number;
+    activity_deleted: number;
+    memories_cleared: boolean;
+    profile_reset: boolean;
+  }>(`/conversations`, {
     method: "DELETE",
   });
 }

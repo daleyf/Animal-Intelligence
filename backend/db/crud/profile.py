@@ -25,3 +25,22 @@ def upsert_profile(db: Session, data: dict) -> UserProfile:
     db.commit()
     db.refresh(profile)
     return profile
+
+
+def reset_profile(db: Session) -> UserProfile:
+    """Reset the single user profile row back to pre-onboarding defaults."""
+    profile = db.get(UserProfile, 1)
+    if profile is None:
+        profile = UserProfile(id=1)
+        db.add(profile)
+
+    profile.name = None
+    profile.home_location = None
+    profile.work_location = None
+    profile.interests = None
+    profile.projects = None
+    profile.onboarding_done = False
+
+    db.commit()
+    db.refresh(profile)
+    return profile

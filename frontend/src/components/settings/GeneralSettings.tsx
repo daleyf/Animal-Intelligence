@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 export function GeneralSettings() {
   const [clearConfirm, setClearConfirm] = useState(false);
   const queryClient = useQueryClient();
-  const { setActiveConversation } = useAppStore();
+  const { resetForOnboarding } = useAppStore();
 
   const { data: settings } = useQuery({
     queryKey: ["settings"],
@@ -28,8 +28,11 @@ export function GeneralSettings() {
 
   const handleClearAll = async () => {
     await clearAllConversations();
-    setActiveConversation(null);
+    resetForOnboarding();
     queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    queryClient.invalidateQueries({ queryKey: ["profile"] });
+    queryClient.invalidateQueries({ queryKey: ["memories"] });
+    queryClient.invalidateQueries({ queryKey: ["activity"] });
     setClearConfirm(false);
   };
 
@@ -94,7 +97,7 @@ export function GeneralSettings() {
           Danger Zone
         </h3>
         <p style={{ fontSize: "13px", color: "var(--color-text-muted)", marginBottom: "12px" }}>
-          Permanently delete all conversations and messages from local storage.
+          Permanently reset conversations, memories, activity, and onboarding data on this device.
         </p>
         <Button variant="danger" size="sm" onClick={() => setClearConfirm(true)}>
           Clear All History
@@ -104,7 +107,7 @@ export function GeneralSettings() {
       <Modal
         isOpen={clearConfirm}
         title="Clear all history"
-        message="All conversations and messages will be permanently deleted. This cannot be undone."
+        message="This will permanently wipe conversations, memories, activity, and your onboarding profile, then return you to the initial onboarding screen."
         confirmLabel="Clear All"
         onConfirm={handleClearAll}
         onCancel={() => setClearConfirm(false)}
