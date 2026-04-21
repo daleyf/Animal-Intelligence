@@ -26,7 +26,6 @@ from core.integrations.report_service import morning_report_service
 from core.integrations.calendar_client import calendar_client
 from core.integrations.weather import weather_client
 from core.integrations.news import news_client
-from core.integrations.commute import commute_client
 from core.encryption import encrypt_field, decrypt_field
 from core.config import settings as app_settings
 from db.crud import profile as profile_crud
@@ -78,15 +77,11 @@ async def get_report(
     profile = profile_crud.get_profile(db)
     token_row = _decrypted_token(_get_or_create_token(db))
 
-    cats_raw = settings_crud.get_value(db, "news_categories", "technology,science,general")
-    news_categories = [c.strip() for c in (cats_raw or "").split(",") if c.strip()]
-
     async def event_stream() -> AsyncIterator[str]:
         try:
             async for token in morning_report_service.generate(
                 profile=profile,
                 token_row=token_row,
-                news_categories=news_categories,
                 model=active_model,
                 ollama=ollama,
             ):
@@ -111,7 +106,6 @@ def report_status(db: Session = Depends(get_db)):
     return {
         "weather": weather_client.available,
         "news": news_client.available,
-        "commute": commute_client.available,
         "web_search": bool(app_settings.ollama_api_key),
         "calendar": token_row.connected,
         "calendar_configured": calendar_client.configured,

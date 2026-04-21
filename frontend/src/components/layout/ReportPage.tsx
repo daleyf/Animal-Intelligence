@@ -263,7 +263,6 @@ export function ReportPage() {
             {[
               { label: "Weather", key: "weather" },
               { label: "News", key: "news" },
-              { label: "Commute", key: "commute" },
               { label: "Calendar", key: "calendar" },
             ].map(({ label }) => (
               <a

@@ -16,8 +16,6 @@ class Settings(BaseSettings):
     # External API keys (empty = feature disabled)
     ollama_api_key: str = ""  # Ollama account API key — ollama.com/settings/keys
     openweathermap_api_key: str = ""
-    news_api_key: str = ""
-    google_maps_api_key: str = ""
 
     # Google Calendar OAuth
     google_client_id: str = ""
@@ -29,7 +27,11 @@ class Settings(BaseSettings):
     # backend/.secret_key on first run.  Never commit .secret_key to git.
     encryption_key: str = ""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_ignore_empty=True,
+    )
 
 
 settings = Settings()

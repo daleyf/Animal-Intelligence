@@ -1,25 +1,23 @@
 """
-NewsAPI integration.
+Personalized news via Ollama Web Search.
 
-Requires NEWS_API_KEY in .env.
-Free tier: 100 requests/day, top-headlines endpoint.
-Docs: https://newsapi.org/docs/endpoints/top-headlines
+Uses the user's interests from their profile to search for relevant news
+headlines. Powered by the same Ollama Web Search API used for research —
+no separate API key or external news service required.
+
+Falls back gracefully when OLLAMA_API_KEY is not configured.
 """
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Optional
-
-import httpx
 
 from core.config import settings
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "https://newsapi.org/v2/top-headlines"
-DEFAULT_CATEGORIES = ["technology", "science", "general"]
+DEFAULT_INTERESTS = ["technology", "science", "world news"]
 
 
 @dataclass
@@ -44,65 +42,66 @@ class Headline:
         return f"• {self.title} ({self.source}){desc}"
 
 
-class NewsClient:
-    def __init__(self):
-        self._api_key = settings.news_api_key
-        self._http = httpx.AsyncClient(timeout=8.0)
+class PersonalizedNewsClient:
+    """
+    Fetches news headlines tailored to the user's interests using the Ollama
+    Web Search API. Searches up to 3 interest topics, deduplicates by URL,
+    and returns a flat list of Headline objects.
+    """
 
     @property
     def available(self) -> bool:
-        return bool(self._api_key)
+        return bool(settings.ollama_api_key)
 
     async def get_headlines(
         self,
-        categories: list[str] | None = None,
+        interests: list[str] | None = None,
         count: int = 8,
-        country: str = "us",
     ) -> list[Headline]:
         """
-        Fetch top headlines for the given categories.
-        If categories is empty or None, uses DEFAULT_CATEGORIES.
+        Search for news headlines based on user interests.
+
+        Args:
+            interests: List of interest topics from the user's profile.
+                       Falls back to DEFAULT_INTERESTS if empty or None.
+            count: Maximum number of headlines to return.
+
+        Returns:
+            List of Headline objects, deduped by URL.
         """
-        if not self._api_key:
+        if not settings.ollama_api_key:
             return []
 
-        cats = categories or DEFAULT_CATEGORIES
-        # NewsAPI supports one category per call — use the first category only
-        # (multiple calls would exhaust the free quota quickly)
-        category = cats[0] if cats else "general"
+        # Import here to avoid circular imports at module load
+        from core.web_search import web_search_client
 
-        try:
-            resp = await self._http.get(
-                BASE_URL,
-                params={
-                    "category": category,
-                    "country": country,
-                    "pageSize": count,
-                    "apiKey": self._api_key,
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
+        topics = (interests or DEFAULT_INTERESTS)[:3]
+        seen_urls: set[str] = set()
+        headlines: list[Headline] = []
 
-            headlines: list[Headline] = []
-            for article in data.get("articles", [])[:count]:
-                headlines.append(
-                    Headline(
-                        title=article.get("title", ""),
-                        source=article.get("source", {}).get("name", ""),
-                        url=article.get("url", ""),
-                        description=article.get("description", "") or "",
-                        published_at=article.get("publishedAt", "")[:10],
-                    )
+        for topic in topics:
+            try:
+                results = await web_search_client.search(
+                    f"{topic} latest news today", count=3
                 )
-            return headlines
+                for r in results:
+                    if r.url not in seen_urls:
+                        seen_urls.add(r.url)
+                        headlines.append(
+                            Headline(
+                                title=r.title,
+                                source=r.source,
+                                url=r.url,
+                                description=r.snippet,
+                                published_at="",
+                            )
+                        )
+                        if len(headlines) >= count:
+                            return headlines
+            except Exception as exc:
+                logger.warning("News search failed for topic %r: %s", topic, exc)
 
-        except Exception as exc:
-            logger.warning("News fetch failed: %s", exc)
-            return []
-
-    async def aclose(self) -> None:
-        await self._http.aclose()
+        return headlines
 
 
-news_client = NewsClient()
+news_client = PersonalizedNewsClient()

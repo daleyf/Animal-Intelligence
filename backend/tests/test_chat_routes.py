@@ -172,7 +172,7 @@ def test_report_status(client):
     resp = client.get("/api/v1/report/status")
     assert resp.status_code == 200
     data = resp.json()
-    for key in ("weather", "news", "commute", "calendar", "calendar_configured"):
+    for key in ("weather", "news", "calendar", "calendar_configured"):
         assert key in data
 
 

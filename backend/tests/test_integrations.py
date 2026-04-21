@@ -191,7 +191,7 @@ def test_activity_clear(client, test_db_engine):
 
     db = sm(bind=test_db_engine)()
     try:
-        log_tool_call(db, "commute", input_summary="origin=home", success=True)
+        log_tool_call(db, "weather", input_summary="location=home", success=True)
     finally:
         db.close()
 

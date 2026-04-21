@@ -91,9 +91,7 @@ export function OnboardingWizard({ onComplete }: Props) {
         {step === 1 && (
           <StepLocation
             home={data.home_location}
-            work={data.work_location}
             onChangeHome={(v) => setData((d) => ({ ...d, home_location: v }))}
-            onChangeWork={(v) => setData((d) => ({ ...d, work_location: v }))}
             onNext={() => setStep(2)}
             onBack={() => setStep(0)}
           />

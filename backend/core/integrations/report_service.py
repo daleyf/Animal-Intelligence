@@ -15,7 +15,6 @@ from typing import AsyncIterator, TYPE_CHECKING
 
 from core.integrations.weather import weather_client, WeatherData
 from core.integrations.news import news_client, Headline
-from core.integrations.commute import commute_client, CommuteData
 from core.integrations.calendar_client import calendar_client, CalendarEvent
 
 if TYPE_CHECKING:
@@ -36,7 +35,6 @@ class MorningReportService:
         self,
         profile: "UserProfile | None",
         token_row,            # GoogleCalendarToken ORM row or None
-        news_categories: list[str],
         model: str,
         ollama: "OllamaClient",
     ) -> AsyncIterator[str]:
@@ -44,16 +42,11 @@ class MorningReportService:
 
         # ── Gather all data sources in parallel ──────────────────────────────
         home = profile.home_location if profile else ""
-        work = profile.work_location if profile else ""
         name = profile.name if profile else ""
+        interests = list(profile.interests or []) if profile else []
 
         weather_task = weather_client.get_current(home) if home else None
-        news_task = news_client.get_headlines(categories=news_categories)
-        commute_task = (
-            commute_client.get_time(home, work)
-            if home and work
-            else None
-        )
+        news_task = news_client.get_headlines(interests=interests)
 
         tasks = []
         task_keys: list[str] = []
@@ -63,9 +56,6 @@ class MorningReportService:
             task_keys.append("weather")
         tasks.append(news_task)
         task_keys.append("news")
-        if commute_task:
-            tasks.append(commute_task)
-            task_keys.append("commute")
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
         data: dict = {}
@@ -90,7 +80,6 @@ class MorningReportService:
             name=name,
             weather=data.get("weather"),
             news=data.get("news"),
-            commute=data.get("commute"),
             events=events,
         )
 
@@ -119,7 +108,6 @@ def _build_report_prompt(
     name: str,
     weather: WeatherData | None,
     news: list[Headline] | None,
-    commute: CommuteData | None,
     events: list[CalendarEvent],
 ) -> str:
     parts: list[str] = []
@@ -137,9 +125,6 @@ def _build_report_prompt(
         parts.append(f"\n## Today's Calendar\n{event_lines}")
     else:
         parts.append("\n## Today's Calendar\nNo calendar events today.")
-
-    if commute:
-        parts.append(f"\n## Commute\n{commute.to_text()}")
 
     if news:
         headline_lines = "\n".join(h.to_text() for h in news[:6])

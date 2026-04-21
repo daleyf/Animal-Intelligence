@@ -8,7 +8,6 @@ const TOOL_NAMES = [
   "memory",
   "weather",
   "news",
-  "commute",
   "calendar",
 ];
 
@@ -17,7 +16,6 @@ const TOOL_LABELS: Record<string, string> = {
   memory: "Memory",
   weather: "Weather",
   news: "News",
-  commute: "Commute",
   calendar: "Calendar",
 };
 

@@ -25,7 +25,8 @@ Cloud AI makes you choose: privacy or performance. Anchorpoint doesn't. All infe
 - Falls back gracefully when no API key is configured
 
 **Morning Report**
-- Daily briefing combining weather, top news, commute time, and Google Calendar events
+- Daily briefing combining weather, personalized news headlines, and Google Calendar events
+- News is fetched via the Ollama Web Search API using your profile interests — no separate news API key needed
 - Scheduled auto-generation at a configurable time; latest report available on demand
 - Each data source is optional — the report works with whatever APIs you have configured
 
@@ -75,7 +76,7 @@ Download and install from [ollama.com/download](https://ollama.com/download).
 
 ```bash
 ollama serve
-ollama pull llama3.1:8b   # ~4.7 GB — adjust based on your hardware
+ollama pull llama3.2:3b   # ~4.7 GB — adjust based on your hardware
 ```
 
 - **Windows**: Ollama starts automatically after installation — skip `ollama serve`
@@ -136,9 +137,9 @@ Open `http://localhost:5173`. The onboarding wizard will guide you through the r
 
 All integrations are disabled by default. Enable them by adding the relevant keys to `backend/.env`.
 
-### Web Search (Ollama API)
+### Web Search & Personalized News (Ollama API)
 
-The research panel uses the Ollama Web Search API for real-time web queries.
+The research panel and morning report news section both use the Ollama Web Search API. Morning report headlines are automatically tailored to your profile interests.
 
 1. Create a free account at [ollama.com](https://ollama.com)
 2. Generate an API key at [ollama.com/settings/keys](https://ollama.com/settings/keys)
@@ -148,29 +149,15 @@ The research panel uses the Ollama Web Search API for real-time web queries.
 OLLAMA_API_KEY=your_key_here
 ```
 
+Set your interests in **Settings → Profile** to personalize morning report news topics.
+
 ### Weather (OpenWeatherMap)
 
 ```
-OPENWEATHER_API_KEY=your_key_here
+OPENWEATHERMAP_API_KEY=your_key_here
 ```
 
 Free tier at [openweathermap.org](https://openweathermap.org/api).
-
-### News (NewsAPI)
-
-```
-NEWS_API_KEY=your_key_here
-```
-
-Free tier at [newsapi.org](https://newsapi.org).
-
-### Commute (Google Maps)
-
-```
-GOOGLE_MAPS_API_KEY=your_key_here
-```
-
-Requires the Directions API enabled in Google Cloud Console.
 
 ### Google Calendar
 

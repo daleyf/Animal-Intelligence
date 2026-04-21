@@ -89,20 +89,10 @@ export function IntegrationsPage() {
             active={status?.weather ?? false}
           />
           <IntegrationCard
-            name="News"
-            description="NewsAPI · Set NEWS_API_KEY"
-            active={status?.news ?? false}
-          />
-          <IntegrationCard
-            name="Commute"
-            description="Google Maps · Set GOOGLE_MAPS_API_KEY"
-            active={status?.commute ?? false}
-          />
-          <IntegrationCard
-            name="Web Search"
+            name="Web Search & News"
             description="Ollama API · Set OLLAMA_API_KEY (ollama.com/settings/keys)"
             active={status?.web_search ?? false}
-            note="Used for research queries"
+            note="Powers research queries + personalized news based on your interests"
           />
         </div>
 
