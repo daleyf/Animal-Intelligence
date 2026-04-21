@@ -119,6 +119,14 @@ export function useChat(): UseChatReturn {
 
             const cid = convId || conversationIdRef.current;
 
+            // Invalidate the individual conversation cache. The query may have been
+            // fetched during streaming before messages were saved to DB, leaving a
+            // stale 0-message snapshot. Marking it stale now ensures the next visit
+            // (or immediate background refetch) returns the complete message list.
+            if (cid) {
+              queryClient.invalidateQueries({ queryKey: ["conversation", cid] });
+            }
+
             // Update the cache entry's preview + timestamp without forcing a
             // network re-fetch — this keeps the optimistic title intact while
             // the backend's background title-generation task is still running.
