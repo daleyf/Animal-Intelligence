@@ -133,6 +133,30 @@ Open `http://localhost:5173`. The onboarding wizard will guide you through the r
 
 ---
 
+## Running Tests
+
+### Backend
+
+```bash
+cd backend
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+
+pytest                                          # all tests
+pytest -v                                       # verbose
+pytest tests/test_chat_routes.py               # single file
+pytest --cov=core --cov=db --cov=api --cov-report=term-missing  # with coverage
+```
+
+### Frontend
+
+```bash
+cd frontend
+
+npm test          # headless, all tests
+npm run test:ui   # chrome for testing
+```
+
+
 ## Optional Integrations
 
 All integrations are disabled by default. Enable them by adding the relevant keys to `backend/.env`.
