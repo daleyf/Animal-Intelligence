@@ -100,9 +100,9 @@ export function OnboardingWizard({ onComplete }: Props) {
           <StepInterests
             interests={data.interests}
             projects={data.projects}
-            onChangeInterests={(v) => setData((d) => ({ ...d, interests: v }))}
-            onChangeProjects={(v) => setData((d) => ({ ...d, projects: v }))}
-            onFinish={() => handleFinish(data)}
+            onFinish={(interests, projects) =>
+              handleFinish({ ...data, interests, projects })
+            }
             onBack={() => setStep(1)}
             isSaving={isPending}
           />

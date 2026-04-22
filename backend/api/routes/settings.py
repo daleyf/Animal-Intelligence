@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from api.dependencies import get_db
@@ -11,6 +12,8 @@ from core.env_secrets import (
     set_integration_secret,
 )
 from db.crud import settings as settings_crud
+from db.crud import conversations as conv_crud
+from db.models import ToolLog, UserProfile
 
 router = APIRouter()
 
@@ -51,3 +54,33 @@ def delete_integration_secret(secret_key: str):
         return clear_integration_secret(secret_key)
     except KeyError as exc:
         raise HTTPException(status_code=400, detail="Unsupported integration key.") from exc
+
+
+@router.post("/reset")
+def factory_reset(db: Session = Depends(get_db)):
+    """
+    Full factory reset:
+      - Hard-delete all conversations and messages
+      - Clear the activity log
+      - Reset the user profile (onboarding_done=False, all personal fields nulled)
+    """
+    conv_crud.hard_delete_all_conversations(db)
+    db.execute(delete(ToolLog))
+
+    profile = db.get(UserProfile, 1)
+    if profile is not None:
+        profile.name = None
+        profile.home_location = None
+        profile.work_location = None
+        profile.interests = None
+        profile.projects = None
+        profile.onboarding_done = False
+
+    # Clear cached report content so the Daily Report page shows empty state
+    settings_crud.update_many(db, {
+        "last_report_content": "",
+        "last_report_generated_at": "",
+    })
+
+    db.commit()
+    return {"reset": True}
