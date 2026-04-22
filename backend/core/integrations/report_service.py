@@ -91,7 +91,9 @@ class MorningReportService:
                     db, "weather",
                     input_summary=f"location={home!r}",
                     success=weather_ok,
-                    error_message=weather_result.error if isinstance(weather_result, WeatherData) else None,
+                    error_message=(
+                        weather_result.error if isinstance(weather_result, WeatherData) else None
+                    ),
                     session_id=session_id,
                     data_destination="api.openweathermap.org",
                 )
