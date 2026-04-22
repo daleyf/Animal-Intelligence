@@ -98,8 +98,10 @@ def _build_memory_context(user_message: str, memory_enabled: bool) -> str:
     if not memories:
         return ""
 
-    # Only include memories with decent relevance (cosine similarity > 0.5)
-    relevant = [m for m in memories if m.distance < 0.5]
+    # Only include memories with decent relevance.
+    # unrelated content is filtered out. 
+    # A threshold of 0.75 captures related context
+    relevant = [m for m in memories if m.distance < 0.75]
     if not relevant:
         return ""
 
