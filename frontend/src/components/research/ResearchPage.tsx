@@ -111,12 +111,6 @@ function ReasoningChain({
           <path d="M2 1.5l4 3-4 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         Research steps ({steps.length})
-        {isStreaming && (
-          <span
-            className="streaming-cursor"
-            style={{ background: "var(--color-text-muted)", marginLeft: "2px" }}
-          />
-        )}
       </button>
 
       {open && (
