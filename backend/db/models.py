@@ -121,9 +121,12 @@ class ToolLog(Base):
     duration_ms = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=_utcnow, index=True)
     # Extended audit fields
-    session_id = Column(String(36), nullable=True, index=True)   # groups related calls (research, report)
-    sub_queries = Column(Text, nullable=True)                     # JSON array of individual search strings
-    data_destination = Column(String(200), nullable=True)         # where data was sent (human-readable)
+    # groups related calls (research, report)
+    session_id = Column(String(36), nullable=True, index=True)
+    # JSON array of individual search strings
+    sub_queries = Column(Text, nullable=True)
+    # where data was sent (human-readable)
+    data_destination = Column(String(200), nullable=True)
 
 
 class GoogleCalendarToken(Base):
