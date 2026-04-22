@@ -52,6 +52,7 @@ export function GeneralSettings() {
     queryClient.invalidateQueries({ queryKey: ["activity"] });
     queryClient.invalidateQueries({ queryKey: ["profile"] });
     queryClient.invalidateQueries({ queryKey: ["report-latest"] });
+    queryClient.invalidateQueries({ queryKey: ["memories"] });
     setClearConfirm(false);
   };
 
@@ -196,7 +197,7 @@ export function GeneralSettings() {
           Danger Zone
         </h3>
         <p style={{ fontSize: "13px", color: "var(--color-text-muted)", marginBottom: "12px" }}>
-          Permanently delete all conversations, messages, and activity logs, and reset your profile. You will be taken back to the onboarding screen.
+          Permanently delete all conversations, messages, activity logs, and saved memories, and reset your profile. You will be taken back to the onboarding screen.
         </p>
         <Button variant="danger" size="sm" onClick={() => setClearConfirm(true)}>
           Clear All History
@@ -206,7 +207,7 @@ export function GeneralSettings() {
       <Modal
         isOpen={clearConfirm}
         title="Clear all history"
-        message="All conversations, messages, and activity logs will be permanently deleted and your profile will be reset. This cannot be undone."
+        message="All conversations, messages, activity logs, and saved memories will be permanently deleted and your profile will be reset. This cannot be undone."
         confirmLabel="Clear All"
         onConfirm={handleClearAll}
         onCancel={() => setClearConfirm(false)}

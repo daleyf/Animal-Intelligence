@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(curl -s -X POST 'https://lite.duckduckgo.com/lite/' -H 'Content-Type: application/x-www-form-urlencoded' -H 'User-Agent: Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/605.1.15' --data 'q=weather+pittsburgh+today&kl=us-en'fjfjfj)",
+      "Bash(curl -s -X POST 'https://lite.duckduckgo.com/lite/' -H 'Content-Type: application/x-www-form-urlencoded' -H 'User-Agent: Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/605.1.15' --data 'q=weather+pittsburgh+today&kl=us-en')"
+    ]
+  }
+}
