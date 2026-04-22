@@ -1,21 +1,37 @@
-import { useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiFetch } from "@/api/client";
+import {
+  KeyboardEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "@/store/appStore";
+import { streamChat } from "@/api/chat";
+import { StreamingIndicator } from "@/components/chat/StreamingIndicator";
+import { Conversation, ConversationListResponse } from "@/types/chat";
 
-interface ScheduleSettings {
-  enabled: boolean;
-  time: string;
-}
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-interface LatestReport {
+interface ReportMessage {
+  id: string;
+  role: "user" | "assistant";
   content: string;
-  generated_at: string;
+  isStreaming?: boolean;
 }
+
+function uid() {
+  return Math.random().toString(36).slice(2);
+}
+
+// ── SSE streaming ─────────────────────────────────────────────────────────────
 
 function streamReport(
   model: string,
   callbacks: {
+    onConversationId: (id: string) => void;
     onToken: (t: string) => void;
     onDone: () => void;
     onError: (msg: string) => void;
@@ -28,29 +44,25 @@ function streamReport(
         callbacks.onError("No response body");
         return;
       }
-
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buf = "";
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
         buf += decoder.decode(value, { stream: true });
         const lines = buf.split("\n");
         buf = lines.pop() ?? "";
-
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
-
           try {
             const ev = JSON.parse(line.slice(6));
-            if (ev.type === "token") callbacks.onToken(ev.content);
+            if (ev.type === "conversation_id") callbacks.onConversationId(ev.conversation_id);
+            else if (ev.type === "token") callbacks.onToken(ev.content);
             else if (ev.type === "done") callbacks.onDone();
             else if (ev.type === "error") callbacks.onError(ev.message);
           } catch {
-            // Skip malformed events from the stream.
+            // skip malformed
           }
         }
       }
@@ -60,269 +72,568 @@ function streamReport(
     });
 }
 
+// ── Empty state ───────────────────────────────────────────────────────────────
+
+function EmptyState({ onGenerate }: { onGenerate: () => void }) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "column",
+        gap: "0",
+        userSelect: "none",
+      }}
+    >
+      <svg
+        width="46"
+        height="46"
+        viewBox="0 0 46 46"
+        fill="none"
+        style={{ opacity: 0.35, marginBottom: "20px", animation: "fade-in 0.8s ease both" }}
+      >
+        <circle cx="23" cy="23" r="8" stroke="#0078FF" strokeWidth="2.2" />
+        <path
+          d="M23 3v4M23 39v4M3 23h4M39 23h4M8.5 8.5l2.8 2.8M34.7 34.7l2.8 2.8M34.7 8.5l-2.8 2.8M11.3 34.7l-2.8 2.8"
+          stroke="#0078FF"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+      </svg>
+
+      <div
+        style={{
+          fontFamily: "var(--font-display)",
+          fontSize: "21px",
+          fontWeight: 400,
+          color: "var(--color-text)",
+          letterSpacing: "-0.25px",
+          marginBottom: "10px",
+          animation: "fade-in 0.9s ease 0.15s both",
+        }}
+      >
+        Daily Report
+      </div>
+
+      <div
+        style={{
+          fontSize: "12px",
+          color: "var(--color-text-muted)",
+          letterSpacing: "0.04em",
+          marginBottom: "32px",
+          animation: "fade-in 0.9s ease 0.3s both",
+        }}
+      >
+        Personalized briefing of your day · Ask follow-ups after
+      </div>
+
+      <button
+        onClick={onGenerate}
+        style={{
+          padding: "11px 28px",
+          background: "var(--color-accent)",
+          border: "none",
+          borderRadius: "10px",
+          color: "#fff",
+          fontSize: "14px",
+          fontWeight: 500,
+          fontFamily: "var(--font-sans)",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          boxShadow: "0 4px 16px rgba(0, 120, 255, 0.28)",
+          animation: "fade-in 0.9s ease 0.45s both",
+          transition: "box-shadow 0.15s",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.boxShadow =
+            "0 6px 22px rgba(0, 120, 255, 0.42)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.boxShadow =
+            "0 4px 16px rgba(0, 120, 255, 0.28)";
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="7" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.5" />
+          <path
+            d="M7 0.5v1.5M7 12v1.5M0.5 7h1.5M12 7h1.5M2.7 2.7l1.1 1.1M10.2 10.2l1.1 1.1M10.2 2.7l-1.1 1.1M4.1 10.2l-1.1 1.1"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </svg>
+        Generate Report
+      </button>
+    </div>
+  );
+}
+
+// ── Message bubbles ───────────────────────────────────────────────────────────
+
+function UserBubble({ content }: { content: string }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "flex-end",
+        padding: "5px 20px",
+        animation: "message-in 0.18s ease",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "66%",
+          padding: "10px 15px",
+          background: "var(--color-user-bubble)",
+          border: "1px solid var(--color-user-bubble-border)",
+          borderRadius: "16px 16px 3px 16px",
+          fontSize: "14px",
+          lineHeight: "1.65",
+          color: "var(--color-text)",
+          fontFamily: "var(--font-sans)",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+        }}
+      >
+        {content}
+      </div>
+    </div>
+  );
+}
+
+function AssistantBubble({ msg }: { msg: ReportMessage }) {
+  const { content, isStreaming } = msg;
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        padding: "10px 20px 10px 40px",
+        position: "relative",
+        animation: "message-in 0.2s ease",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          left: "22px",
+          top: "19px",
+          width: "5px",
+          height: "5px",
+          borderRadius: "50%",
+          background: "var(--color-accent)",
+          opacity: 0.7,
+          flexShrink: 0,
+        }}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {isStreaming && !content ? (
+          <StreamingIndicator />
+        ) : (
+          <div className="llm-body">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({ href, children }) => (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "var(--color-accent)" }}
+                  >
+                    {children}
+                  </a>
+                ),
+              }}
+            >
+              {content}
+            </ReactMarkdown>
+            {isStreaming && <StreamingIndicator inline />}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
 export function ReportPage() {
   const qc = useQueryClient();
-  const { activeModel } = useAppStore();
-  const [content, setContent] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState("");
+  const { activeModel, setActiveConversation } = useAppStore();
+
+  const [messages, setMessages] = useState<ReportMessage[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [inputValue, setInputValue] = useState("");
+  const [focused, setFocused] = useState(false);
+
   const abortRef = useRef<AbortController | null>(null);
+  const convIdRef = useRef<string | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [userScrolled, setUserScrolled] = useState(false);
 
-  const { data: latest } = useQuery({
-    queryKey: ["report-latest"],
-    queryFn: () => apiFetch<LatestReport>("/report/latest"),
-    staleTime: 30_000,
-  });
+  // ── Helpers ──────────────────────────────────────────────────────────────────
 
-  const { data: schedule } = useQuery({
-    queryKey: ["report-schedule"],
-    queryFn: () => apiFetch<ScheduleSettings>("/report/schedule"),
-    staleTime: 60_000,
-  });
+  const addPendingAssistant = (): string => {
+    const id = uid();
+    setMessages((prev) => [
+      ...prev,
+      { id, role: "assistant", content: "", isStreaming: true },
+    ]);
+    return id;
+  };
 
-  const scheduleMutation = useMutation({
-    mutationFn: (body: ScheduleSettings) =>
-      apiFetch<ScheduleSettings>("/report/schedule", {
-        method: "PUT",
-        body: JSON.stringify(body),
-      }),
-    onSuccess: (data) => qc.setQueryData(["report-schedule"], data),
-  });
+  const updateMessage = (id: string, patch: Partial<ReportMessage>) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, ...patch } : m)),
+    );
+  };
 
-  const handleGenerate = () => {
-    if (isGenerating) {
-      abortRef.current?.abort();
-      setIsGenerating(false);
-      return;
+  // ── Auto-scroll ───────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!userScrolled) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
+  }, [messages, isRunning, userScrolled]);
 
-    setContent("");
-    setError("");
-    setIsGenerating(true);
+  const handleScroll = () => {
+    const el = containerRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+    setUserScrolled(!atBottom);
+  };
+
+  useEffect(() => {
+    setUserScrolled(false);
+  }, [messages.length]);
+
+  // ── Generate report ───────────────────────────────────────────────────────────
+
+  const handleGenerate = useCallback(() => {
+    setMessages([]);
+    setIsRunning(true);
+    setUserScrolled(false);
+    convIdRef.current = null;
+
+    const asstId = uid();
+    setMessages([{ id: asstId, role: "assistant", content: "", isStreaming: true }]);
 
     const controller = new AbortController();
     abortRef.current = controller;
     let accumulated = "";
 
+    const todayTitle = `Daily Report \u2013 ${new Date().toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    })}`;
+
     streamReport(
       activeModel,
       {
+        onConversationId: (id) => {
+          convIdRef.current = id;
+          setActiveConversation(id);
+          qc.setQueriesData<ConversationListResponse>(
+            { queryKey: ["conversations"] },
+            (old) => {
+              if (!old) return old;
+              if (old.conversations.some((c: Conversation) => c.id === id)) return old;
+              const newConvo: Conversation = {
+                id,
+                title: todayTitle,
+                model_name: activeModel,
+                conversation_type: "report",
+                updated_at: new Date().toISOString(),
+                preview: "",
+              };
+              return {
+                ...old,
+                conversations: [newConvo, ...old.conversations],
+                total: old.total + 1,
+              };
+            },
+          );
+        },
         onToken: (t) => {
           accumulated += t;
-          setContent(accumulated);
+          updateMessage(asstId, { content: accumulated });
         },
-        onDone: () => setIsGenerating(false),
+        onDone: () => {
+          updateMessage(asstId, { isStreaming: false });
+          setIsRunning(false);
+          qc.invalidateQueries({ queryKey: ["conversations"] });
+        },
         onError: (msg) => {
-          setError(msg);
-          setIsGenerating(false);
+          updateMessage(asstId, { content: msg || "Report generation failed.", isStreaming: false });
+          setIsRunning(false);
+        },
+      },
+      controller.signal,
+    );
+  }, [activeModel, qc, setActiveConversation]);
+
+  // ── Follow-up chat ────────────────────────────────────────────────────────────
+
+  const doChat = async (message: string) => {
+    const userMsgId = uid();
+    setMessages((prev) => [...prev, { id: userMsgId, role: "user", content: message }]);
+    const asstId = addPendingAssistant();
+    setIsRunning(true);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+    let accumulated = "";
+
+    await streamChat(
+      { message, conversation_id: convIdRef.current, model: activeModel },
+      {
+        onConversationId: (id) => {
+          convIdRef.current = id;
+          setActiveConversation(id);
+        },
+        onToken: (token) => {
+          accumulated += token;
+          updateMessage(asstId, { content: accumulated });
+        },
+        onDone: (fullContent) => {
+          updateMessage(asstId, { content: fullContent, isStreaming: false });
+          setIsRunning(false);
+          qc.invalidateQueries({ queryKey: ["conversations"] });
+        },
+        onError: (msg) => {
+          updateMessage(asstId, { content: msg, isStreaming: false });
+          setIsRunning(false);
         },
       },
       controller.signal,
     );
   };
 
-  const displayContent = content || latest?.content || "";
-  const generatedAt = content
-    ? "Just now"
-    : latest?.generated_at
-      ? new Date(latest.generated_at).toLocaleString()
-      : null;
+  // ── Input handlers ────────────────────────────────────────────────────────────
+
+  const handleSend = async () => {
+    const text = inputValue.trim();
+    if (!text || isRunning) return;
+    setInputValue("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+    await doChat(text);
+  };
+
+  const handleStop = () => {
+    abortRef.current?.abort();
+    setIsRunning(false);
+    setMessages((prev) =>
+      prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m)),
+    );
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleInput = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 160) + "px";
+  };
+
+  const canSend = !isRunning && inputValue.trim().length > 0;
+  const hasMessages = messages.length > 0;
+
+  const placeholder = isRunning
+    ? "Generating…"
+    : "Ask a follow-up about your report…";
+
+  // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        height: "100%",
+      }}
+    >
+      {/* Empty state or message thread */}
+      {!hasMessages ? (
+        <EmptyState onGenerate={handleGenerate} />
+      ) : (
+        <div
+          ref={containerRef}
+          onScroll={handleScroll}
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: "20px 0 24px",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "760px",
+              margin: "0 auto",
+              display: "flex",
+              flexDirection: "column",
+              flex: 1,
+            }}
+          >
+            {messages.map((msg) =>
+              msg.role === "user" ? (
+                <UserBubble key={msg.id} content={msg.content} />
+              ) : (
+                <AssistantBubble key={msg.id} msg={msg} />
+              ),
+            )}
+            <div ref={bottomRef} />
+          </div>
+        </div>
+      )}
+
+      {/* Chat input — appears once report is started */}
+      {hasMessages && (
         <div
           style={{
-            padding: "16px 24px",
-            borderBottom: "1px solid var(--color-border)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            padding: "6px 0 14px",
+            background: "var(--color-bg)",
             flexShrink: 0,
           }}
         >
-          <div>
-            <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--color-text)" }}>
-              Daily Report
-            </div>
-            {generatedAt && (
-              <div style={{ fontSize: "11px", color: "var(--color-text-muted)", marginTop: "2px" }}>
-                {generatedAt}
-              </div>
-            )}
-          </div>
-          <button
-            onClick={handleGenerate}
+          <div
             style={{
-              padding: "7px 16px",
-              background: isGenerating ? "var(--color-surface-2)" : "var(--color-accent)",
-              border: isGenerating ? "1px solid var(--color-border)" : "none",
-              borderRadius: "var(--radius-sm)",
-              color: isGenerating ? "var(--color-text-muted)" : "#fff",
-              fontSize: "12px",
-              cursor: "pointer",
-              fontFamily: "var(--font-sans)",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
+              width: "100%",
+              maxWidth: "760px",
+              margin: "0 auto",
+              padding: "0 20px",
             }}
           >
-            {isGenerating ? (
-              <>
-                <span className="streaming-cursor" style={{ background: "var(--color-text-muted)" }} />
-                Stop
-              </>
-            ) : (
-              <>Generate report</>
-            )}
-          </button>
-        </div>
-
-        <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
-          {error && (
-            <div
-              style={{
-                padding: "10px 14px",
-                background: "var(--color-surface-2)",
-                border: "1px solid var(--color-danger)",
-                borderRadius: "var(--radius-sm)",
-                fontSize: "12px",
-                color: "var(--color-danger)",
-                marginBottom: "16px",
-              }}
-            >
-              {error}
-            </div>
-          )}
-          {displayContent ? (
-            <div
-              className="llm-body"
-              style={{ fontSize: "14px", lineHeight: "1.75" }}
-              dangerouslySetInnerHTML={{
-                __html: displayContent
-                  .replace(/\n\n/g, "</p><p>")
-                  .replace(/\n/g, "<br/>")
-                  .replace(/^/, "<p>")
-                  .replace(/$/, "</p>"),
-              }}
-            />
-          ) : !isGenerating ? (
-            <div style={{ textAlign: "center", paddingTop: "60px" }}>
-              <div style={{ fontSize: "24px", marginBottom: "12px", fontWeight: 600 }}>No Daily Reports</div>
-              <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>
-                Click "Generate report" to create your daily briefing
-              </div>
-            </div>
-          ) : null}
-          {isGenerating && !displayContent && (
             <div
               style={{
                 display: "flex",
-                gap: "6px",
+                gap: "10px",
                 alignItems: "center",
-                color: "var(--color-text-muted)",
-                fontSize: "12px",
+                background: "var(--color-surface-2)",
+                border: `1px solid ${focused ? "rgba(0,120,255,0.45)" : "var(--color-border)"}`,
+                borderRadius: "14px",
+                padding: "10px 10px 10px 16px",
+                boxShadow: focused
+                  ? "0 0 0 3px rgba(0,120,255,0.08), 0 4px 16px rgba(0,0,0,0.22)"
+                  : "0 2px 10px rgba(0,0,0,0.18)",
+                transition: "border-color 0.15s, box-shadow 0.18s",
               }}
             >
-              <span className="streaming-cursor" style={{ background: "var(--color-accent)" }} />
-              Generating your daily report...
+              <textarea
+                ref={textareaRef}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onInput={handleInput}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                placeholder={placeholder}
+                disabled={isRunning}
+                rows={1}
+                style={{
+                  flex: 1,
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--color-text)",
+                  fontSize: "14px",
+                  fontFamily: "var(--font-sans)",
+                  resize: "none",
+                  outline: "none",
+                  lineHeight: "1.55",
+                  maxHeight: "160px",
+                  overflow: "auto",
+                }}
+              />
+
+              {isRunning ? (
+                <button
+                  onClick={handleStop}
+                  title="Stop"
+                  style={{
+                    width: "30px",
+                    height: "30px",
+                    borderRadius: "var(--radius-sm)",
+                    background: "var(--color-accent)",
+                    border: "none",
+                    color: "#fff",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <rect x="1" y="1" width="8" height="8" rx="1.5" fill="currentColor" />
+                  </svg>
+                </button>
+              ) : (
+                <button
+                  onClick={handleSend}
+                  disabled={!canSend}
+                  title="Send (Enter)"
+                  style={{
+                    width: "30px",
+                    height: "30px",
+                    borderRadius: "var(--radius-sm)",
+                    background: canSend ? "var(--color-accent)" : "transparent",
+                    border: canSend ? "none" : "1px solid var(--color-border)",
+                    color: canSend ? "#fff" : "var(--color-text-muted)",
+                    cursor: canSend ? "pointer" : "not-allowed",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    transition: "background 0.18s, border-color 0.18s, color 0.18s",
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                    <path
+                      d="M6.5 11V2M2 6l4.5-4.5L11 6"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              )}
             </div>
-          )}
-        </div>
-      </div>
 
-      <div
-        style={{
-          width: "240px",
-          borderLeft: "1px solid var(--color-border)",
-          padding: "20px 16px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "20px",
-          flexShrink: 0,
-          overflowY: "auto",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "11px",
-            fontWeight: 600,
-            color: "var(--color-text-muted)",
-            textTransform: "uppercase",
-            letterSpacing: "0.8px",
-          }}
-        >
-          Auto-Schedule
-        </div>
-
-        <label
-          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
-        >
-          <span style={{ fontSize: "12px", color: "var(--color-text)" }}>Daily auto-generate</span>
-          <input
-            type="checkbox"
-            checked={schedule?.enabled ?? false}
-            onChange={(e) =>
-              scheduleMutation.mutate({ enabled: e.target.checked, time: schedule?.time ?? "07:00" })
-            }
-            style={{ accentColor: "var(--color-accent)", width: "15px", height: "15px" }}
-          />
-        </label>
-
-        {schedule?.enabled && (
-          <div>
-            <div style={{ fontSize: "11px", color: "var(--color-text-muted)", marginBottom: "6px" }}>
-              Time (UTC)
-            </div>
-            <input
-              type="time"
-              value={schedule.time}
-              onChange={(e) => scheduleMutation.mutate({ enabled: true, time: e.target.value })}
+            <div
               style={{
-                width: "100%",
-                background: "var(--color-bg)",
-                border: "1px solid var(--color-border)",
-                borderRadius: "var(--radius-sm)",
-                color: "var(--color-text)",
-                fontSize: "12px",
-                padding: "6px 8px",
-                fontFamily: "var(--font-sans)",
-                outline: "none",
-                boxSizing: "border-box",
+                fontSize: "10.5px",
+                color: "var(--color-text-muted)",
+                textAlign: "center",
+                marginTop: "8px",
+                letterSpacing: "0.02em",
               }}
-            />
-            <div style={{ fontSize: "10.5px", color: "var(--color-text-muted)", marginTop: "4px" }}>
-              Report generates in the background and is ready when you open the app.
+            >
+              {isRunning
+                ? "Generating your daily report…"
+                : "Follow-ups use the local LLM · Shift+Enter for new line"}
             </div>
           </div>
-        )}
-
-        <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "16px" }}>
-          <div
-            style={{
-              fontSize: "11px",
-              fontWeight: 600,
-              color: "var(--color-text-muted)",
-              textTransform: "uppercase",
-              letterSpacing: "0.8px",
-              marginBottom: "10px",
-            }}
-          >
-            Integrations
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            {["Weather", "Calendar"].map((label) => (
-              <a
-                key={label}
-                href="/settings/integrations"
-                style={{ fontSize: "11px", color: "var(--color-accent)", textDecoration: "none" }}
-              >
-                Configure {label} {"->"}
-              </a>
-            ))}
-          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

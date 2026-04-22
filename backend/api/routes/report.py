@@ -14,6 +14,7 @@ GET  /report/calendar/events     → today's calendar events
 
 import json
 import uuid
+from datetime import datetime, timezone
 from typing import AsyncIterator
 
 from fastapi import APIRouter, Depends
@@ -31,6 +32,7 @@ from core.encryption import encrypt_field, decrypt_field
 from core.config import settings as app_settings
 from db.crud import profile as profile_crud
 from db.crud import settings as settings_crud
+from db.crud import conversations as conv_crud
 from db.models import GoogleCalendarToken
 
 router = APIRouter()
@@ -81,6 +83,13 @@ async def get_report(
     async def event_stream() -> AsyncIterator[str]:
         session_id = str(uuid.uuid4())
         try:
+            today = datetime.now(timezone.utc).strftime("%B %d, %Y")
+            convo = conv_crud.create_conversation(db, active_model, conversation_type="report")
+            conv_crud.update_title(db, convo.id, f"Daily Report \u2013 {today}")
+
+            yield _sse({"type": "conversation_id", "conversation_id": convo.id})
+
+            collected: list[str] = []
             async for token in morning_report_service.generate(
                 profile=profile,
                 token_row=token_row,
@@ -89,7 +98,18 @@ async def get_report(
                 db=db,
                 session_id=session_id,
             ):
+                collected.append(token)
                 yield _sse({"type": "token", "content": token})
+
+            full_content = "".join(collected)
+            conv_crud.add_message(db, convo.id, "assistant", full_content)
+
+            # Also persist to AppSettings for scheduled-report compatibility
+            settings_crud.update_many(db, {
+                "last_report_content": full_content,
+                "last_report_generated_at": datetime.now(timezone.utc).isoformat(),
+            })
+
             yield _sse({"type": "done"})
         except Exception as exc:
             yield _sse({"type": "error", "message": str(exc)})

@@ -20,15 +20,18 @@ Cloud AI makes you choose: privacy or performance. Anchorpoint doesn't. All infe
 - Embedding runs locally using `all-MiniLM-L6-v2` (downloaded on first start, ~90 MB)
 
 **Research**
-- Research panel: ask a question, get a synthesized answer with cited web sources
+- Full-page research interface at `/research` — ask a question, get a synthesized answer with cited web sources
+- Results stream in real time into a chat-style thread; ask follow-up questions after the initial research completes
 - Powered by the Ollama Web Search API — requires a free Ollama account API key
 - Falls back gracefully when no API key is configured
 
 **Daily Report**
 - Daily briefing combining weather, personalized news headlines, and Google Calendar events
+- Each generated report is saved as a persistent conversation — appears in the sidebar just like chat history
+- Follow-up questions supported after generation: chat with your report using the local LLM
 - News is fetched via the Ollama Web Search API using your profile interests — no separate news API key needed
-- Scheduled auto-generation at a configurable time; latest report available on demand
-- Each data source is optional — the report works with whatever APIs you have configured
+- Auto-generation schedule configurable in **Settings → General** (toggle + UTC time picker)
+- Each data source is optional — the report works with whatever integrations you have configured
 
 **Voice Output**
 - Read any assistant message aloud using the browser's Web Speech API
@@ -160,6 +163,9 @@ npm test          # headless, all tests
 npm run test:ui   # chrome for testing
 ```
 
+All backend tests use in-memory SQLite and mock external services — no Ollama instance or API keys required.
+
+---
 
 ## Optional Integrations
 
@@ -189,19 +195,48 @@ Free tier at [openweathermap.org](https://openweathermap.org/api).
 
 ### Google Calendar
 
-Follow the OAuth setup in `docs/design.md`, then connect via **Settings → Morning Report → Connect Google Calendar**.
+Google Calendar integration uses OAuth 2.0. You need to create credentials in Google Cloud Console — this takes about 5 minutes.
 
----
+**Step 1 — Create a Google Cloud project**
 
-## Running Tests
+1. Go to [console.cloud.google.com](https://console.cloud.google.com)
+2. Click the project dropdown at the top → **New Project** → give it any name → **Create**
 
-```bash
-cd backend
-source .venv/bin/activate
-pytest
+**Step 2 — Enable the Google Calendar API**
+
+1. In your new project, go to **APIs & Services → Library**
+2. Search for "Google Calendar API" → click it → **Enable**
+
+**Step 3 — Create OAuth credentials**
+
+1. Go to **APIs & Services → Credentials**
+2. Click **+ Create Credentials → OAuth client ID**
+3. If prompted, configure the OAuth consent screen first:
+   - Choose **External** → fill in app name and your email → **Save and Continue** through remaining steps
+4. Back on the Create OAuth client ID screen:
+   - Application type: **Web application**
+   - Name: anything (e.g. "Anchorpoint Local")
+   - Under **Authorized redirect URIs**, click **+ Add URI** and enter:
+     ```
+     http://localhost:5173/settings/integrations
+     ```
+5. Click **Create** — you'll see your **Client ID** and **Client Secret**
+
+**Step 4 — Add credentials to your `.env`**
+
+```
+GOOGLE_CLIENT_ID=your_client_id_here
+GOOGLE_CLIENT_SECRET=your_client_secret_here
+GOOGLE_REDIRECT_URI=http://localhost:5173/settings/integrations
 ```
 
-All tests use in-memory SQLite and mock external services — no Ollama instance or API keys required.
+Restart the backend after saving.
+
+**Step 5 — Connect in Anchorpoint**
+
+Go to **Settings → Integrations** and click **Connect Google Calendar**. You'll be redirected to Google's consent screen, then returned to Anchorpoint automatically.
+
+> If Google shows an "unverified app" warning during sign-in, click **Advanced → Go to [app name]** to proceed — this is expected for locally-run OAuth apps that haven't been through Google's verification process.
 
 ---
 

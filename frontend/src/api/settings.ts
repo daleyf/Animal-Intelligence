@@ -34,6 +34,10 @@ export function clearIntegrationSecret(key: string) {
   });
 }
 
+export function factoryReset() {
+  return apiFetch<{ reset: boolean }>("/reset", { method: "POST" });
+}
+
 export async function checkHealth(): Promise<{
   status: string;
   ollama_connected: boolean;

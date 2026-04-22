@@ -92,10 +92,10 @@ The frontend uses `fetch` + `ReadableStream` (not `EventSource`, which is GET-on
 
 | Layer | Path | Purpose |
 |---|---|---|
-| Global state | `store/appStore.ts` | Zustand: `activeConversationId`, `activeModel`, `isGenerating`, `abortController`, `ollamaConnected` |
+| Global state | `store/appStore.ts` | Zustand: `activeConversationId`, `activeModel`, `isGenerating`, `abortController`, `ollamaConnected` — no research/report panel state; those pages manage their own local state |
 | Server state | `hooks/use*.ts` | TanStack Query hooks wrapping `api/` fetch helpers |
 | SSE client | `api/chat.ts` | `streamChat()` parses SSE lines and fires callbacks |
-| Routing | `App.tsx` | `BrowserRouter` with onboarding check; routes: `/`, `/report`, `/activity`, `/settings/*` |
+| Routing | `App.tsx` | `BrowserRouter` with onboarding check; routes: `/`, `/research`, `/report`, `/activity`, `/settings/*` |
 
 ### Key design constraints
 
@@ -111,11 +111,27 @@ The frontend uses `fetch` + `ReadableStream` (not `EventSource`, which is GET-on
 
 `db/database.py` seeds these on first launch:
 
-| Key | Default |
-|---|---|
-| `active_model` | `llama3.1:8b` |
-| `personalization_enabled` | `true` |
-| `context_window_tokens` | `4096` |
+| Key | Default | Notes |
+|---|---|---|
+| `active_model` | `llama3.1:8b` | |
+| `personalization_enabled` | `true` | |
+| `context_window_tokens` | `4096` | |
+| `report_schedule_enabled` | `false` | Daily report auto-generation toggle |
+| `morning_report_time` | `07:00` | UTC time for scheduled report |
+| `last_report_content` | `""` | Cached content of most recent report |
+| `last_report_generated_at` | `""` | ISO timestamp of most recent report |
+
+### Conversation types
+
+`Conversation.conversation_type` is an enum-style string with three values:
+
+| Value | Created by | Notes |
+|---|---|---|
+| `"chat"` | `POST /api/v1/chat` | Standard chat |
+| `"research"` | `GET /api/v1/memory/research` SSE | Web research results |
+| `"report"` | `GET /report` SSE | Daily report; also writes to `last_report_content` |
+
+Factory reset (`POST /reset`) hard-deletes all conversation types and clears the report cache keys.
 
 ### Linting / formatting standards
 
@@ -128,8 +144,8 @@ The frontend uses `fetch` + `ReadableStream` (not `EventSource`, which is GET-on
 
 - **Core chat**: streaming SSE, conversation persistence, model management, onboarding, personalization
 - **Memory**: ChromaDB vector memory, context injection from past conversations
-- **Research**: web research agent, Ollama Web Search API integration
-- **Daily Report**: weather, news, commute, Google Calendar summary, scheduled auto-generation
+- **Research**: full-page route at `/research` — web research agent with Ollama Web Search API; results stream into a chat-style thread with cited sources; follow-up questions use regular chat after initial research completes
+- **Daily Report**: weather, news, Google Calendar summary; each generation creates a `conversation_type="report"` conversation stored in the sidebar; follow-up chat is supported after generation; scheduled auto-generation (enabled/time in **General Settings**)
 - **Voice**: browser TTS, built-in and custom voice profiles
 - **Activity Logs**: tool invocation audit trail at `/activity`
 - **Security**: PII sanitization on outbound queries, Fernet encryption for OAuth tokens at rest

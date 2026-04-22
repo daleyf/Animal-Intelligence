@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import anchorpointLogo from "@/assets/AnchorpointLogo.svg";
 
 interface Props {
   value: string;
@@ -11,12 +12,14 @@ interface Props {
 export function StepName({ value, onChange, onNext, onSkip }: Props) {
   return (
     <div>
-      <div style={{ fontSize: "28px", marginBottom: "8px" }}>⚓</div>
-      <h2 style={{ fontSize: "22px", fontWeight: 700, marginBottom: "8px" }}>
-        Welcome to Anchorpoint
-      </h2>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+        <img src={anchorpointLogo} alt="Anchorpoint" style={{ width: "32px", height: "32px", flexShrink: 0 }} />
+        <h2 style={{ fontSize: "22px", fontWeight: 700, margin: 0 }}>
+          Welcome to Anchorpoint
+        </h2>
+      </div>
       <p style={{ fontSize: "14px", color: "var(--color-text-muted)", marginBottom: "28px" }}>
-        Your private AI assistant. Everything stays on your machine — no cloud, no data sharing.
+        Your private AI assistant. Everything stays on your machine, no cloud, no data sharing.
         Let's personalize your experience.
       </p>
 
