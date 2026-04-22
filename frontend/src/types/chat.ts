@@ -4,7 +4,7 @@ export interface Message {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
-  extra_data?: { sources?: ResearchSource[] } | null;
+  extra_data?: { sources?: ResearchSource[]; reasoning?: string[] } | null;
   created_at: string;
 }
 

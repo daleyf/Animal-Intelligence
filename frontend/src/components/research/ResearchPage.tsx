@@ -391,12 +391,13 @@ export function ResearchPage() {
           reconstructed.push({ id: uid(), role: "user", content: msg.content });
         } else if (msg.role === "assistant") {
           const sources: ResearchSource[] = msg.extra_data?.sources ?? [];
+          const reasoning: string[] = msg.extra_data?.reasoning ?? [];
           reconstructed.push({
             id: uid(),
             role: "assistant",
             content: msg.content,
             sources,
-            reasoning: [],
+            reasoning,
           });
         }
       }

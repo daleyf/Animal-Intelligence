@@ -103,6 +103,7 @@ async def research(
 
         session_id = str(uuid.uuid4())
         queries_used: list[str] = []
+        status_steps: list[str] = []
         success = False
 
         try:
@@ -125,9 +126,14 @@ async def research(
 
                     # Persist the exchange so it appears in conversation history
                     conv_crud.add_message(db, convo.id, "user", request.question)
+                    extra: dict = {}
+                    if event.sources:
+                        extra["sources"] = event.sources
+                    if status_steps:
+                        extra["reasoning"] = status_steps
                     conv_crud.add_message(
                         db, convo.id, "assistant", event.full_content,
-                        extra_data={"sources": event.sources} if event.sources else None,
+                        extra_data=extra if extra else None,
                     )
 
                     # Generate title inline so sidebar sees it immediately when queries invalidate
@@ -162,7 +168,8 @@ async def research(
                     return
 
                 else:
-                    # status event — relay as-is
+                    # status event — collect for persistence and relay to client
+                    status_steps.append(event.message)
                     yield _sse({"type": "status", "message": event.message})
 
         except Exception as exc:
