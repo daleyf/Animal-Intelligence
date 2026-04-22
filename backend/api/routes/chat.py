@@ -99,10 +99,8 @@ def _build_memory_context(user_message: str, memory_enabled: bool) -> str:
         return ""
 
     # Only include memories with decent relevance.
-    # ChromaDB cosine distance = 1 - cosine_similarity. Empirically, even closely
-    # related exchanges produce distances in the 0.5–0.65 range; genuinely
-    # unrelated content is 0.8+. A threshold of 0.75 captures related context
-    # while still filtering out clearly irrelevant memories.
+    # unrelated content is filtered out. 
+    # A threshold of 0.75 captures related context
     relevant = [m for m in memories if m.distance < 0.75]
     if not relevant:
         return ""
