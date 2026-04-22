@@ -2,7 +2,7 @@
 
 **A privacy-first personal AI assistant powered entirely by your local LLM.**
 
-Cloud AI makes you choose: privacy or performance. Anchorpoint doesn't. All inference, memory, and data stay on your machine — no accounts, no API keys, no tracking.
+Cloud AI makes you choose: privacy or performance. Anchorpoint doesn't. All inference, memory, and data stay on your machine — no accounts and no tracking.
 
 ---
 
@@ -24,7 +24,7 @@ Cloud AI makes you choose: privacy or performance. Anchorpoint doesn't. All infe
 - Powered by the Ollama Web Search API — requires a free Ollama account API key
 - Falls back gracefully when no API key is configured
 
-**Morning Report**
+**Daily Report**
 - Daily briefing combining weather, personalized news headlines, and Google Calendar events
 - News is fetched via the Ollama Web Search API using your profile interests — no separate news API key needed
 - Scheduled auto-generation at a configurable time; latest report available on demand
