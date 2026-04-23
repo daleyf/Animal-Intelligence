@@ -109,7 +109,15 @@ function groupLogs(logs: ToolLogEntry[]): LogItem[] {
     }
   }
 
-  return result;
+  // Flatten single-entry groups back to individual rows so they are always
+  // visible (e.g. when filtering by "weather" each entry has a session_id
+  // but only one entry per session is returned — collapsing it into a group
+  // header would hide it behind a click).
+  return result.map((item) =>
+    item.kind === "group" && item.entries.length === 1
+      ? { kind: "single" as const, log: item.entries[0] }
+      : item
+  );
 }
 
 // ── Label for a session group ─────────────────────────────────────────────────
