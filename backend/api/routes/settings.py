@@ -6,6 +6,7 @@ from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from api.dependencies import get_db
+from core.memory_store import memory_store
 from core.env_secrets import (
     clear_integration_secret,
     list_integration_secret_metadata,
@@ -63,8 +64,10 @@ def factory_reset(db: Session = Depends(get_db)):
       - Hard-delete all conversations and messages
       - Clear the activity log
       - Reset the user profile (onboarding_done=False, all personal fields nulled)
+      - Clear vector memory (Chroma) when the memory store is available
     """
     conv_crud.hard_delete_all_conversations(db)
+    memory_store.clear_all()
     db.execute(delete(ToolLog))
 
     profile = db.get(UserProfile, 1)
