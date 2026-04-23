@@ -1,8 +1,8 @@
 """
-Integration tests:
-voice, activity log, report schedule, tool logger, and external API failure scenarios.
+Integration tests 
 
-using an in-memory SQLite database.
+These tests use an in-memory SQLite DB and a mock Ollama client so no real
+Ollama process is required.
 """
 
 import httpx
@@ -17,7 +17,7 @@ from db.database import DEFAULT_SETTINGS
 
 
 # Shared fixtures
-
+# -------------- #
 @pytest.fixture(scope="module")
 def test_db_engine():
     engine = create_engine(
@@ -67,21 +67,28 @@ def client(test_db_engine):
 
 
 # Voice routes
-
+# -------------- #
+# Are voice settings returned with correct shape and types?
 def test_voice_profiles(client):
+    """Verify the voice profiles endpoint returns the expected profiles with correct fields."""
     resp = client.get("/api/v1/voice/profiles")
     assert resp.status_code == 200
     data = resp.json()
     assert "profiles" in data
+
+    # Verify each profile has required fields and expected IDs
     profiles = data["profiles"]
     assert len(profiles) == 3
     ids = {p["id"] for p in profiles}
+
+    # Verify expected profile IDs are present
     assert ids == {"neutral", "warm", "professional"}
     for p in profiles:
         assert "rate" in p and "pitch" in p and "name" in p
 
-
+# get current voice settings, verify shape and types
 def test_voice_settings_get(client):
+    """Verify the voice settings endpoint returns the expected fields with correct types."""
     resp = client.get("/api/v1/voice/settings")
     assert resp.status_code == 200
     data = resp.json()
@@ -91,8 +98,9 @@ def test_voice_settings_get(client):
     assert "pitch" in data
     assert isinstance(data["rate"], float)
 
-
+# update voice settings, verify changes persisted
 def test_voice_settings_update_toggle(client):
+    """Test updating voice settings to enable/disable and verify changes persist."""
     resp = client.put("/api/v1/voice/settings", json={"enabled": True})
     assert resp.status_code == 200
     assert resp.json()["enabled"] is True
@@ -100,38 +108,47 @@ def test_voice_settings_update_toggle(client):
     resp = client.put("/api/v1/voice/settings", json={"enabled": False})
     assert resp.json()["enabled"] is False
 
-
+# update voice settings with profile, verify rate/pitch sync
 def test_voice_settings_select_profile(client):
+    """Test selecting a voice profile updates rate and pitch accordingly."""
     resp = client.put("/api/v1/voice/settings", json={"profile": "warm"})
     assert resp.status_code == 200
     data = resp.json()
+
+    # Verify profile is set
     assert data["profile"] == "warm"
+
     # Synced rate/pitch from profile
     assert data["rate"] == pytest.approx(0.9, abs=0.01)
     assert data["pitch"] == pytest.approx(1.15, abs=0.01)
 
-
+#  allow direct setting of rate/pitch, verify it overrides profile values
 def test_voice_settings_fine_tune(client):
+    """Test directly setting rate and pitch overrides profile defaults."""
     resp = client.put("/api/v1/voice/settings", json={"rate": 1.25, "pitch": 0.8})
     assert resp.status_code == 200
     data = resp.json()
     assert data["rate"] == pytest.approx(1.25, abs=0.01)
     assert data["pitch"] == pytest.approx(0.8, abs=0.01)
 
-
+# Invalid updates should return 422
 def test_voice_settings_invalid_profile(client):
+    """Test that setting an invalid profile returns a validation error."""
     resp = client.put("/api/v1/voice/settings", json={"profile": "robot"})
-    assert resp.status_code == 422  # Pydantic validation error
+    assert resp.status_code == 422
 
-
+# rate out of range should return 422
 def test_voice_settings_rate_out_of_range(client):
+    """Test that setting rate outside of allowed range returns validation error."""
     resp = client.put("/api/v1/voice/settings", json={"rate": 5.0})
     assert resp.status_code == 422
 
 
 # Activity log routes
-
+# -------------- #
+# empty activity log should return empty list and total 0
 def test_activity_list_empty(client):
+    """Verify that when the activity log is empty, the API returns an empty list and total of 0."""
     # Clean slate
     client.delete("/api/v1/activity")
     resp = client.get("/api/v1/activity")
@@ -141,7 +158,7 @@ def test_activity_list_empty(client):
     assert "total" in data
     assert isinstance(data["logs"], list)
 
-
+# after logging some activity, it should appear in the list with correct fields
 def test_activity_log_written_by_tool_logger(client, test_db_engine):
     """Write a log entry via the tool_logger and verify it appears in the API."""
     from core.tool_logger import log_tool_call
@@ -200,6 +217,7 @@ def test_activity_clear(client, test_db_engine):
 
 
 # Report schedule routes
+# -------------- #
 def test_report_schedule_get(client):
     resp = client.get("/api/v1/report/schedule")
     assert resp.status_code == 200
@@ -276,6 +294,7 @@ def test_integration_secret_routes_mask_and_update(client, monkeypatch, tmp_path
 
 
 # Tool logger unit tests
+# -------------- #
 def test_tool_logger_success(test_db_engine):
     from core.tool_logger import log_tool_call
     from db.models import ToolLog
@@ -331,7 +350,7 @@ def test_tool_logger_truncates_long_input(test_db_engine):
 
 
 # API failures
-
+# -------------- #
 def test_web_search_no_api_key_returns_empty():
     """When OLLAMA_API_KEY is empty, search() returns [] without raising."""
     import asyncio
