@@ -1,5 +1,8 @@
 """
 Tests for MemoryStore and ResearchAgent components.
+
+These tests use an in-memory SQLite DB and a mock Ollama client so no real
+Ollama process is required.
 """
 import tempfile
 import pytest
@@ -26,6 +29,7 @@ def store():
 
 
 # MemoryStore tests
+# -------------- #
 class TestMemoryStore:
     def test_store_and_count(self, store):
         assert store.get_count() == 0
@@ -91,8 +95,8 @@ class TestMemoryStore:
         assert result is None or isinstance(result, str)
 
 
-# Research agent test
-
+# Research agent tests
+# -------------- #
 class MockOllamaClient:
     """Minimal mock that yields canned tokens."""
 

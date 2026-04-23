@@ -1,7 +1,8 @@
 """
 Integration test for the /health endpoint.
 
-using an in-memory SQLite database.
+These tests use an in-memory SQLite DB and a mock Ollama client so no real
+Ollama process is required.
 """
 
 import pytest
@@ -12,6 +13,7 @@ from main import app
 
 
 # Health fixture
+# -------------- #
 @pytest.fixture
 def client():
     with TestClient(app) as c:
@@ -19,7 +21,9 @@ def client():
 
 
 # Health endpoint test
+# -------------- #
 def test_health_endpoint_returns_ok(client):
+    """Test that the /health endpoint returns status ok and includes version and Ollama connection status."""
     with patch(
         "core.ollama_client.OllamaClient.is_running",
         new_callable=AsyncMock,

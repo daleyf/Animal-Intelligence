@@ -1,7 +1,8 @@
 """
 Core Services Tests
 
-using an in-memory SQLite database.
+These tests use an in-memory SQLite DB and a mock Ollama client so no real
+Ollama process is required.
 """
 
 import pytest
@@ -18,6 +19,7 @@ from db.database import DEFAULT_SETTINGS
 
 
 # Shared fixtures
+# -------------- #
 @pytest.fixture(scope="module")
 def test_db_engine():
     engine = create_engine(
@@ -70,7 +72,7 @@ def client(test_db_engine):
 
 
 # Ollama client tests
-
+# -------------- #
 class TestOllamaClient:
     @pytest.mark.asyncio
     async def test_is_running_true_when_200(self):
@@ -138,8 +140,8 @@ class TestOllamaClient:
             assert "size_gb" in m
 
 
-# Settings route
-
+# Settings route tests
+# -------------- #
 class TestSettingsRoute:
     def test_get_settings_returns_defaults(self, client):
         resp = client.get("/api/v1/settings")
@@ -171,7 +173,8 @@ class TestSettingsRoute:
         client.put("/api/v1/settings", json={"context_window_tokens": "4096"})
 
 
-# Profile route
+# Profile route tests
+# -------------- #
 class TestProfileRoute:
     def test_get_profile_returns_shape(self, client):
         resp = client.get("/api/v1/profile")
@@ -207,7 +210,8 @@ class TestProfileRoute:
         assert "hiking" in data["interests"]
         assert "Anchorpoint" in data["projects"]
 
-
+# Conversations route tests
+# -------------- #
 class TestConversationsRoute:
     def test_list_conversations_returns_list(self, client):
         resp = client.get("/api/v1/conversations")
@@ -231,7 +235,8 @@ class TestConversationsRoute:
         assert "deleted" in data
 
 
-# Models route
+# Models route tests
+# -------------- #
 class TestModelsRoute:
     def test_list_models_returns_shape(self, client):
         resp = client.get("/api/v1/models")
