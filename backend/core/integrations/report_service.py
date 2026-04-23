@@ -87,15 +87,33 @@ class MorningReportService:
             if home and weather_task:
                 weather_result = data.get("weather")
                 weather_ok = isinstance(weather_result, WeatherData) and not weather_result.error
+                if isinstance(weather_result, WeatherData):
+                    err_msg = weather_result.error
+                elif isinstance(weather_result, Exception):
+                    err_msg = str(weather_result)
+                else:
+                    err_msg = None
                 log_tool_call(
                     db, "weather",
                     input_summary=f"location={home!r}",
                     success=weather_ok,
-                    error_message=(
-                        weather_result.error if isinstance(weather_result, WeatherData) else None
-                    ),
+                    error_message=err_msg,
                     session_id=session_id,
                     data_destination="api.openweathermap.org",
+                )
+            elif not home:
+                # Weather skipped — no home location set in profile.
+                # Log so the user can see why weather is missing from the report.
+                log_tool_call(
+                    db, "weather",
+                    input_summary="skipped — no home location configured",
+                    success=False,
+                    error_message=(
+                        "No home location set in your profile. "
+                        "Add it in Settings → Profile to enable weather data."
+                    ),
+                    session_id=session_id,
+                    data_destination=None,
                 )
 
             news_result = data.get("news")
