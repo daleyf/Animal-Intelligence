@@ -144,7 +144,7 @@ class TestConversationCrud:
         assert conv_crud.get_last_message_preview(db, convo.id) == ""
 
     def test_get_last_message_preview_with_message(self, db):
-        """Test that getting the last message preview for 
+        """Test that getting the last message preview for
         a conversation with messages returns the correct preview."""
         convo = conv_crud.create_conversation(db, model_name="llama3.1:8b")
         conv_crud.add_message(db, convo.id, "user", "Hello")

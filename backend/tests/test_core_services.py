@@ -236,8 +236,6 @@ class TestConversationsRoute:
         assert "conversations" in data
 
     def test_list_conversations_with_preview(self, client):
-        import json
-
         with client.stream(
             "POST", "/api/v1/chat", json={"message": "hi", "model": "llama3.1:8b"}
         ) as resp:
