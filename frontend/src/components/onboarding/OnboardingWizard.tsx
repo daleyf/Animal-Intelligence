@@ -3,6 +3,7 @@ import { useUpdateProfile } from "@/hooks/useProfile";
 import { StepName } from "./StepName";
 import { StepLocation } from "./StepLocation";
 import { StepInterests } from "./StepInterests";
+import { StepModel } from "./StepModel";
 
 interface WizardData {
   name: string;
@@ -27,11 +28,11 @@ export function OnboardingWizard({ onComplete }: Props) {
   });
   const { mutate: save, isPending } = useUpdateProfile();
 
-  const steps = ["Welcome", "Location", "Interests"];
+  const steps = ["Welcome", "Location", "Interests", "Model"];
 
-  const handleFinish = (finalData: WizardData) => {
+  const handleFinish = () => {
     save(
-      { ...finalData, onboarding_done: true },
+      { ...data, onboarding_done: true },
       { onSuccess: onComplete }
     );
   };
@@ -58,9 +59,11 @@ export function OnboardingWizard({ onComplete }: Props) {
           border: "1px solid var(--color-border)",
           borderRadius: "var(--radius-lg)",
           padding: "40px",
-          maxWidth: "480px",
+          // Wider on the model step to give model cards room for badges
+          maxWidth: step === 3 ? "580px" : "480px",
           width: "90%",
           animation: "fade-in 0.2s ease",
+          transition: "max-width 0.2s ease",
         }}
       >
         {/* Progress indicator */}
@@ -91,7 +94,9 @@ export function OnboardingWizard({ onComplete }: Props) {
         {step === 1 && (
           <StepLocation
             home={data.home_location}
+            work={data.work_location}
             onChangeHome={(v) => setData((d) => ({ ...d, home_location: v }))}
+            onChangeWork={(v) => setData((d) => ({ ...d, work_location: v }))}
             onNext={() => setStep(2)}
             onBack={() => setStep(0)}
           />
@@ -100,10 +105,17 @@ export function OnboardingWizard({ onComplete }: Props) {
           <StepInterests
             interests={data.interests}
             projects={data.projects}
-            onFinish={(interests, projects) =>
-              handleFinish({ ...data, interests, projects })
-            }
+            onNext={(interests, projects) => {
+              setData((d) => ({ ...d, interests, projects }));
+              setStep(3);
+            }}
             onBack={() => setStep(1)}
+          />
+        )}
+        {step === 3 && (
+          <StepModel
+            onFinish={handleFinish}
+            onBack={() => setStep(2)}
             isSaving={isPending}
           />
         )}

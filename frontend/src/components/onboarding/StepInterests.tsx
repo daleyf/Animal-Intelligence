@@ -5,25 +5,23 @@ import { Button } from "@/components/ui/Button";
 interface Props {
   interests: string[];
   projects: string[];
-  onFinish: (interests: string[], projects: string[]) => void;
+  onNext: (interests: string[], projects: string[]) => void;
   onBack: () => void;
-  isSaving: boolean;
 }
 
 export function StepInterests({
   interests,
   projects,
-  onFinish,
+  onNext,
   onBack,
-  isSaving,
 }: Props) {
   const [interestText, setInterestText] = useState(interests.join(", "));
   const [projectText, setProjectText] = useState(projects.join("\n"));
 
-  const handleFinish = () => {
+  const handleNext = () => {
     const parsedInterests = interestText.split(",").map((s) => s.trim()).filter(Boolean);
     const parsedProjects = projectText.split("\n").map((s) => s.trim()).filter(Boolean);
-    onFinish(parsedInterests, parsedProjects);
+    onNext(parsedInterests, parsedProjects);
   };
 
   return (
@@ -57,8 +55,8 @@ export function StepInterests({
         <Button variant="ghost" size="sm" onClick={onBack}>
           ← Back
         </Button>
-        <Button onClick={handleFinish} disabled={isSaving}>
-          {isSaving ? "Saving…" : "Get Started"}
+        <Button onClick={handleNext}>
+          Next →
         </Button>
       </div>
     </div>

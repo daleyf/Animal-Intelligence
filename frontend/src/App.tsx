@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { useAppStore } from "@/store/appStore";
 import { useProfile } from "@/hooks/useProfile";
 import { checkHealth } from "@/api/settings";
@@ -22,6 +22,7 @@ function AppInner() {
   const { setOllamaConnected, setActiveModel } = useAppStore();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Poll health check + load active model from settings on startup — run in parallel
   useEffect(() => {
@@ -48,7 +49,8 @@ function AppInner() {
 
   const handleOnboardingComplete = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["profile"] });
-  }, [queryClient]);
+    navigate("/");
+  }, [queryClient, navigate]);
 
   const { ollamaConnected } = useAppStore();
 
