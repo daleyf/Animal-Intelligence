@@ -137,6 +137,21 @@ class TestConversationCrud:
         assert len(convos) == 0
         assert total == 0
 
+    def test_get_last_message_preview_no_messages(self, db):
+        """Test that getting the last message preview for
+        a conversation with no messages returns an empty string."""
+        convo = conv_crud.create_conversation(db, model_name="llama3.1:8b")
+        assert conv_crud.get_last_message_preview(db, convo.id) == ""
+
+    def test_get_last_message_preview_with_message(self, db):
+        """Test that getting the last message preview for
+        a conversation with messages returns the correct preview."""
+        convo = conv_crud.create_conversation(db, model_name="llama3.1:8b")
+        conv_crud.add_message(db, convo.id, "user", "Hello")
+        conv_crud.add_message(db, convo.id, "assistant", "My response here.")
+        preview = conv_crud.get_last_message_preview(db, convo.id)
+        assert preview == "My response here."
+
 
 # Profile CRUD
 # -------------- #

@@ -210,6 +210,12 @@ class TestProfileRoute:
         assert "hiking" in data["interests"]
         assert "Anchorpoint" in data["projects"]
 
+    def test_get_profile_returns_existing_data(self, client):
+        client.put("/api/v1/profile", json={"name": "Carol"})
+        resp = client.get("/api/v1/profile")
+        assert resp.status_code == 200
+        assert resp.json()["name"] == "Carol"
+
 
 # Conversations route tests
 # -------------- #
@@ -228,6 +234,53 @@ class TestConversationsRoute:
         assert resp.status_code == 200
         data = resp.json()
         assert "conversations" in data
+
+    def test_list_conversations_with_preview(self, client):
+        with client.stream(
+            "POST", "/api/v1/chat", json={"message": "hi", "model": "llama3.1:8b"}
+        ) as resp:
+            b"".join(resp.iter_bytes())
+        resp = client.get("/api/v1/conversations")
+        assert resp.status_code == 200
+        assert len(resp.json()["conversations"]) >= 1
+
+    def test_get_conversation_by_id(self, client):
+        import json
+
+        with client.stream(
+            "POST", "/api/v1/chat", json={"message": "hello", "model": "llama3.1:8b"}
+        ) as resp:
+            raw = b"".join(resp.iter_bytes()).decode()
+        conv_id = None
+        for line in raw.splitlines():
+            if line.startswith("data: "):
+                event = json.loads(line[6:])
+                if event.get("type") == "done":
+                    conv_id = event.get("conversation_id")
+                    break
+        assert conv_id is not None
+        resp = client.get(f"/api/v1/conversations/{conv_id}")
+        assert resp.status_code == 200
+        assert resp.json()["id"] == conv_id
+
+    def test_delete_existing_conversation(self, client):
+        import json
+
+        with client.stream(
+            "POST", "/api/v1/chat", json={"message": "bye", "model": "llama3.1:8b"}
+        ) as resp:
+            raw = b"".join(resp.iter_bytes()).decode()
+        conv_id = None
+        for line in raw.splitlines():
+            if line.startswith("data: "):
+                event = json.loads(line[6:])
+                if event.get("type") == "done":
+                    conv_id = event.get("conversation_id")
+                    break
+        assert conv_id is not None
+        resp = client.delete(f"/api/v1/conversations/{conv_id}")
+        assert resp.status_code == 200
+        assert resp.json()["ok"] is True
 
     def test_clear_all_conversations(self, client):
         resp = client.delete("/api/v1/conversations")

@@ -50,12 +50,13 @@ class TestBuildSystemPrompt:
         profile = MagicMock()
         profile.name = "Alice"
         profile.home_location = "Pittsburgh"
-        profile.work_location = None
+        profile.work_location = "CMU Campus"
         profile.interests = ["hiking", "coding"]
         profile.projects = ["Anchorpoint"]
         result = build_system_prompt(profile=profile, personalization_enabled=True)
         assert "Alice" in result
         assert "Pittsburgh" in result
+        assert "CMU Campus" in result
         assert "hiking" in result
         assert "Anchorpoint" in result
 
@@ -153,3 +154,14 @@ class TestBuildContextMessages:
         contents = [m["content"] for m in result]
         assert "recent question" in contents
         assert "recent answer" in contents
+
+    def test_older_messages_included_when_budget_allows(self):
+        messages = [
+            self._make_message("user", "old question"),
+            self._make_message("assistant", "old answer"),
+            self._make_message("user", "recent"),
+        ]
+        result, stats = build_context_messages(messages, system_prompt="", max_tokens=500)
+        contents = [m["content"] for m in result]
+        assert "old question" in contents
+        assert stats["messages_included"] == 3
