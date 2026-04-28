@@ -29,6 +29,7 @@ DEFAULT_SETTINGS = {
     "voice_pitch": "1.0",         # pitch multiplier (0.0 – 2.0)
     "voice_profile": "neutral",   # neutral | warm | professional
     "report_schedule_enabled": "false",
+    "report_schedule_timezone": "UTC",
     "last_report_content": "",
     "last_report_generated_at": "",
 }

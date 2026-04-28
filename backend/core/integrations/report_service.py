@@ -1,8 +1,8 @@
 """
 Morning report synthesis service.
 
-Aggregates data from all four external integrations (weather, news, commute,
-calendar) in parallel, then streams an LLM-generated briefing.
+Pre-fetches weather, news, and calendar data in parallel, builds a single
+context prompt, and streams an LLM-generated briefing.
 
 Yields token strings compatible with the SSE chat event format.
 """
@@ -27,9 +27,10 @@ logger = logging.getLogger(__name__)
 
 class MorningReportService:
     """
-    Gathers live data from all integrations and streams an LLM-synthesised
-    morning briefing.  Each data source degrades gracefully — a missing API
-    key simply omits that section from the report.
+    Gathers live data from weather, news, and calendar integrations, injects
+    it into the LLM prompt, and streams the resulting morning briefing.
+    Each data source degrades gracefully — a missing API key or unconfigured
+    location simply omits that section from the report.
     """
 
     async def generate(
@@ -43,18 +44,18 @@ class MorningReportService:
     ) -> AsyncIterator[str]:
         """Yield LLM tokens forming the morning briefing."""
 
-        # ── Gather all data sources in parallel ──────────────────────────────
+        # ── Profile data ──────────────────────────────────────────────────────
         home = profile.home_location if profile else ""
         name = profile.name if profile else ""
         interests = list(profile.interests or []) if profile else []
         news_topics = (interests or DEFAULT_INTERESTS)[:3]
 
+        # ── Fetch weather + news in parallel ─────────────────────────────────
         weather_task = weather_client.get_current(home) if home else None
         news_task = news_client.get_headlines(interests=interests)
 
         tasks = []
         task_keys: list[str] = []
-
         if weather_task:
             tasks.append(weather_task)
             task_keys.append("weather")
@@ -70,7 +71,7 @@ class MorningReportService:
             else:
                 data[key] = result
 
-        # Calendar is synchronous (google-api-python-client uses blocking I/O)
+        # ── Fetch calendar (blocking I/O, run in executor) ────────────────────
         events: list[CalendarEvent] = []
         calendar_connected = getattr(token_row, "connected", False)
         try:
@@ -80,7 +81,7 @@ class MorningReportService:
         except Exception as exc:
             logger.warning("Calendar fetch failed: %s", exc)
 
-        # ── Log each integration call to the activity audit trail ─────────────
+        # ── Activity log ──────────────────────────────────────────────────────
         if db is not None:
             from core.tool_logger import log_tool_call
 
@@ -102,8 +103,6 @@ class MorningReportService:
                     data_destination="api.openweathermap.org",
                 )
             elif not home:
-                # Weather skipped — no home location set in profile.
-                # Log so the user can see why weather is missing from the report.
                 log_tool_call(
                     db, "weather",
                     input_summary="skipped — no home location configured",
@@ -135,7 +134,7 @@ class MorningReportService:
                     data_destination="google.com/calendar (Google Calendar API)",
                 )
 
-        # ── Build synthesis prompt ────────────────────────────────────────────
+        # ── Build prompt with all data embedded ───────────────────────────────
         prompt = _build_report_prompt(
             name=name,
             weather=data.get("weather"),
@@ -175,7 +174,7 @@ def _build_report_prompt(
     greeting = f"Good morning{', ' + name if name else ''}!"
     parts.append(greeting)
 
-    if weather:
+    if weather and not weather.error:
         parts.append(f"\n## Weather\n{weather.to_text()}")
     else:
         parts.append("\n## Weather\nWeather data unavailable.")

@@ -23,6 +23,19 @@ logger = logging.getLogger(__name__)
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 
+def _fmt_time(iso: str) -> str:
+    """Convert the time portion of an ISO 8601 string to 12-hour AM/PM format."""
+    if len(iso) <= 10:
+        return iso
+    try:
+        h, m = int(iso[11:13]), int(iso[14:16])
+        period = "AM" if h < 12 else "PM"
+        h12 = h % 12 or 12
+        return f"{h12}:{m:02d} {period}"
+    except (ValueError, IndexError):
+        return iso[11:16]
+
+
 @dataclass
 class CalendarEvent:
     title: str
@@ -45,8 +58,8 @@ class CalendarEvent:
     def to_text(self) -> str:
         if self.all_day:
             return f"• {self.title} (all day)"
-        start_fmt = self.start[11:16] if len(self.start) > 10 else self.start
-        end_fmt = self.end[11:16] if len(self.end) > 10 else self.end
+        start_fmt = _fmt_time(self.start)
+        end_fmt = _fmt_time(self.end)
         loc = f" at {self.location}" if self.location else ""
         return f"• {start_fmt}–{end_fmt}: {self.title}{loc}"
 

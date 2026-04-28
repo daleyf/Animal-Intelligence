@@ -1,17 +1,18 @@
 """
 OpenWeatherMap integration.
 
-Uses two standard free-tier endpoints (no special subscription required):
-  1. Current Weather API  → current conditions by city name
-  2. 5-Day Forecast API   → today's high/low temperature range
+Uses three standard free-tier endpoints (no special subscription required):
+  1. Geocoding API        → location string → lat/lon
+  2. Current Weather API  → lat/lon → current conditions
+  3. 5-Day Forecast API   → lat/lon → today's high/low temperature range
 
-The previous implementation used One Call API 3.0, which requires a
-*separate* subscription even on the free tier — causing 401 errors for
-users with standard free-tier API keys.  This version uses the basic
-endpoints that work with any valid free-tier key.
+Geocoding first ensures any location format the user enters (city name,
+"City, State", "City, Country", etc.) resolves unambiguously to coordinates.
+Passing raw city-name strings to the weather endpoints fails for many formats
+(e.g. "Pittsburgh, PA" returns 404; coordinates never do).
 
 Requires OPENWEATHERMAP_API_KEY in .env.
-Both endpoints: 1,000 calls/day on the free tier.
+All three endpoints: 1,000 calls/day on the free tier.
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
+GEO_URL = "http://api.openweathermap.org/geo/1.0/direct"
 CURRENT_URL = "https://api.openweathermap.org/data/2.5/weather"
 FORECAST_URL = "https://api.openweathermap.org/data/2.5/forecast"
 
@@ -63,9 +65,9 @@ class WeatherData:
             return f"Weather unavailable: {self.error}"
         return (
             f"{self.location}: {self.description.capitalize()}, "
-            f"{self.temperature_c:.0f}°C (feels like {self.feels_like_c:.0f}°C), "
-            f"humidity {self.humidity_pct}%, wind {self.wind_speed_ms:.0f} m/s. "
-            f"Today's range: {self.forecast_low_c:.0f}°C – {self.forecast_high_c:.0f}°C."
+            f"{self.temperature_c:.0f}°F (feels like {self.feels_like_c:.0f}°F), "
+            f"humidity {self.humidity_pct}%, wind {self.wind_speed_ms:.0f} mph. "
+            f"Today's range: {self.forecast_low_c:.0f}°F – {self.forecast_high_c:.0f}°F."
         )
 
 
@@ -83,48 +85,66 @@ class WeatherClient:
         Fetch current weather + today's forecast high/low for *location*.
 
         Steps:
-          1. Current Weather API: city name → current conditions + display name
-          2. 5-Day Forecast API: city name → today's min/max temperature range
+          1. Geocoding API: location string → lat/lon + canonical display name
+          2. Current Weather API: lat/lon → current conditions
+          3. 5-Day Forecast API: lat/lon → today's min/max temperature range
 
-        Both endpoints accept the city name directly — no geocoding step needed.
-        Both are available on the standard free tier without a special subscription.
+        Geocoding first means any location format the user enters works —
+        "Pittsburgh, PA", "London", "Tokyo, JP", full city names, etc.
         """
         if not self._api_key:
             return WeatherData(
                 location=location,
-                temperature_c=0,
-                feels_like_c=0,
-                description="",
-                humidity_pct=0,
-                wind_speed_ms=0,
-                icon="",
-                forecast_high_c=0,
-                forecast_low_c=0,
+                temperature_c=0, feels_like_c=0, description="",
+                humidity_pct=0, wind_speed_ms=0, icon="",
+                forecast_high_c=0, forecast_low_c=0,
                 error="OpenWeatherMap API key not configured.",
             )
 
         try:
-            # Step 1: Current conditions
+            # Step 1: Geocode location string → lat/lon
+            geo_resp = await self._http.get(
+                GEO_URL,
+                params={"q": location, "limit": 1, "appid": self._api_key},
+            )
+            geo_resp.raise_for_status()
+            geo_results = geo_resp.json()
+
+            if not geo_results:
+                return WeatherData(
+                    location=location,
+                    temperature_c=0, feels_like_c=0, description="",
+                    humidity_pct=0, wind_speed_ms=0, icon="",
+                    forecast_high_c=0, forecast_low_c=0,
+                    error=f"Location not found: {location!r}",
+                )
+
+            geo = geo_results[0]
+            lat, lon = geo["lat"], geo["lon"]
+
+            # Build a human-readable display name from geocoding response
+            city = geo.get("name", location)
+            state = geo.get("state", "")
+            country = geo.get("country", "")
+            if state and country:
+                display_name = f"{city}, {state}, {country}"
+            elif country:
+                display_name = f"{city}, {country}"
+            else:
+                display_name = city
+
+            # Step 2: Current conditions
             resp = await self._http.get(
                 CURRENT_URL,
-                params={
-                    "q": location,
-                    "appid": self._api_key,
-                    "units": "metric",
-                },
+                params={"lat": lat, "lon": lon, "appid": self._api_key, "units": "imperial"},
             )
             resp.raise_for_status()
             current = resp.json()
 
-            # Step 2: 5-day / 3-hour forecast — first 8 periods covers today
+            # Step 3: 5-day / 3-hour forecast — first 8 periods covers today
             forecast_resp = await self._http.get(
                 FORECAST_URL,
-                params={
-                    "q": location,
-                    "appid": self._api_key,
-                    "units": "metric",
-                    "cnt": 8,  # 8 × 3 h = 24 h ahead
-                },
+                params={"lat": lat, "lon": lon, "appid": self._api_key, "units": "imperial", "cnt": 8},
             )
             forecast_resp.raise_for_status()
             forecast = forecast_resp.json()
@@ -143,11 +163,6 @@ class WeatherClient:
                 # No forecast items for today — use current temp as fallback
                 forecast_high = current["main"]["temp"]
                 forecast_low = current["main"]["temp"]
-
-            # Build display name from response (city + country code)
-            city_name = current.get("name", location)
-            country = current.get("sys", {}).get("country", "")
-            display_name = f"{city_name}, {country}" if country else city_name
 
             return WeatherData(
                 location=display_name,

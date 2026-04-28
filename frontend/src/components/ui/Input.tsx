@@ -2,9 +2,10 @@ import React from "react";
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
+  hint?: string;
 }
 
-export function Input({ label, id, ...props }: InputProps) {
+export function Input({ label, hint, id, ...props }: InputProps) {
   const inputStyle: React.CSSProperties = {
     width: "100%",
     background: "var(--color-surface-2)",
@@ -29,6 +30,11 @@ export function Input({ label, id, ...props }: InputProps) {
         </label>
       )}
       <input id={id} style={inputStyle} {...props} />
+      {hint && (
+        <span style={{ fontSize: "11px", color: "var(--color-text-muted)" }}>
+          {hint}
+        </span>
+      )}
     </div>
   );
 }

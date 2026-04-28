@@ -36,7 +36,7 @@ class ReportScheduler:
     # Lifecycle
     # ------------------------------------------------------------------
 
-    def start(self, enabled: bool = False, time_str: str = "07:00") -> None:
+    def start(self, enabled: bool = False, time_str: str = "07:00", timezone: str = "UTC") -> None:
         """Start the scheduler and add the report job if enabled.
 
         Idempotent — safe to call even if the scheduler is already running.
@@ -52,8 +52,10 @@ class ReportScheduler:
             self._scheduler.start()
 
         if enabled:
-            self._add_job(time_str)
-        logger.info("ReportScheduler started (job enabled=%s, time=%s)", enabled, time_str)
+            self._add_job(time_str, timezone)
+        logger.info(
+            "ReportScheduler started (job enabled=%s, time=%s, tz=%s)", enabled, time_str, timezone
+        )
 
     def shutdown(self) -> None:
         try:
@@ -66,16 +68,16 @@ class ReportScheduler:
     # Job management
     # ------------------------------------------------------------------
 
-    def reschedule(self, enabled: bool, time_str: str) -> None:
+    def reschedule(self, enabled: bool, time_str: str, timezone: str = "UTC") -> None:
         """Enable/disable or change the cron trigger without restarting."""
         self._scheduler.remove_job(_JOB_ID, jobstore=None)
         if enabled:
-            self._add_job(time_str)
-            logger.info("Morning report scheduled for %s UTC", time_str)
+            self._add_job(time_str, timezone)
+            logger.info("Morning report scheduled for %s %s", time_str, timezone)
         else:
             logger.info("Morning report scheduling disabled")
 
-    def _add_job(self, time_str: str) -> None:
+    def _add_job(self, time_str: str, timezone: str = "UTC") -> None:
         try:
             hour, minute = (int(p) for p in time_str.split(":")[:2])
         except (ValueError, AttributeError):
@@ -83,7 +85,7 @@ class ReportScheduler:
 
         self._scheduler.add_job(
             _run_morning_report,
-            trigger=CronTrigger(hour=hour, minute=minute, timezone="UTC"),
+            trigger=CronTrigger(hour=hour, minute=minute, timezone=timezone),
             id=_JOB_ID,
             replace_existing=True,
             misfire_grace_time=600,   # fire up to 10 min late if server was down

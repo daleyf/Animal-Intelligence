@@ -76,7 +76,8 @@ export function ProfilePage() {
           label="Home location"
           value={home}
           onChange={(e) => setHome(e.target.value)}
-          placeholder="e.g. Pittsburgh, PA"
+          placeholder="e.g. Pittsburgh,PA,US or London,GB"
+          hint="Format: City,StateCode,CountryCode — state code is US only (2-letter abbreviation), country code is ISO 3166 (US, GB, FR…)"
         />
         <Input
           id="work"

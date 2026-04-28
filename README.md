@@ -9,6 +9,7 @@ Cloud AI makes you choose: privacy or performance. Anchorpoint doesn't. All infe
 ## Features
 
 **Core Chat**
+
 - Real-time streaming chat with any Ollama model
 - Persistent conversation history with search and soft-delete
 - User profile and personalization context injected into every request
@@ -16,16 +17,19 @@ Cloud AI makes you choose: privacy or performance. Anchorpoint doesn't. All infe
 - Onboarding wizard for first-time setup
 
 **Memory**
+
 - Vector memory via ChromaDB: Anchorpoint remembers past conversations and automatically injects relevant context into new ones
 - Embedding runs locally using `all-MiniLM-L6-v2` (downloaded on first start, ~90 MB)
 
 **Research**
+
 - Full-page research interface at `/research` — ask a question, get a synthesized answer with cited web sources
 - Results stream in real time into a chat-style thread; ask follow-up questions after the initial research completes
 - Powered by the Ollama Web Search API — requires a free Ollama account API key
 - Falls back gracefully when no API key is configured
 
 **Daily Report**
+
 - Daily briefing combining weather, personalized news headlines, and Google Calendar events
 - Each generated report is saved as a persistent conversation — appears in the sidebar just like chat history
 - Follow-up questions supported after generation: chat with your report using the local LLM
@@ -34,16 +38,19 @@ Cloud AI makes you choose: privacy or performance. Anchorpoint doesn't. All infe
 - Each data source is optional — the report works with whatever integrations you have configured
 
 **Voice Output**
+
 - Read any assistant message aloud using the browser's Web Speech API
 - No model download required — fully local TTS
 - Configurable rate, pitch, and voice profile (Neutral / Warm / Professional)
 - Create and save custom voice profiles
 
 **Activity Log**
+
 - Every external tool call (web search, memory, weather, news, commute, calendar) is logged with timing and success/failure status
 - Visible at `/activity`
 
 **Privacy & Security**
+
 - PII sanitization on outbound queries (emails, phone numbers, SSNs, street addresses, and profile-specific data are masked before leaving the device)
 - Google Calendar OAuth tokens encrypted at rest using Fernet symmetric encryption
 - Hardware-aware model recommendation: Anchorpoint detects available RAM and suggests an appropriate model tier
@@ -52,14 +59,16 @@ Cloud AI makes you choose: privacy or performance. Anchorpoint doesn't. All infe
 
 ## Tech Stack
 
-| Layer       | Technology                          |
-|-------------|-------------------------------------|
-| Backend     | Python 3.13 + FastAPI               |
-| Frontend    | React 18 + TypeScript + Vite        |
-| Database    | SQLite (SQLAlchemy ORM)             |
-| Vector DB   | ChromaDB (local, no server needed)  |
-| LLM Backend | Ollama (local)                      |
-| Streaming   | Server-Sent Events (SSE)            |
+
+| Layer       | Technology                         |
+| ----------- | ---------------------------------- |
+| Backend     | Python 3.13 + FastAPI              |
+| Frontend    | React 18 + TypeScript + Vite       |
+| Database    | SQLite (SQLAlchemy ORM)            |
+| Vector DB   | ChromaDB (local, no server needed) |
+| LLM Backend | Ollama (local)                     |
+| Streaming   | Server-Sent Events (SSE)           |
+
 
 ---
 
@@ -107,9 +116,11 @@ The defaults in `.env.example` are enough to get started. Optional integrations 
 ### Step 4 — Start the backend
 
 #### For Windows
+
 Requires **Python 3.12.X**
 
 #### For Mac
+
 Requires **Python 3.13+**.
 
 ```bash
@@ -117,7 +128,7 @@ cd backend
 python3 -m venv .venv              # Windows: py -3.12 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python -m uvicorn main:app --reload --port 8000
+python3 -m uvicorn main:app --reload --port 8000
 ```
 
 Backend runs at `http://localhost:8000`. Health check: `GET /health`.
@@ -212,15 +223,19 @@ Google Calendar integration uses OAuth 2.0. You need to create credentials in Go
 1. Go to **APIs & Services → Credentials**
 2. Click **+ Create Credentials → OAuth client ID**
 3. If prompted, configure the OAuth consent screen first:
-   - Choose **External** → fill in app name and your email → **Save and Continue** through remaining steps
-4. Back on the Create OAuth client ID screen:
-   - Application type: **Web application**
-   - Name: anything (e.g. "Anchorpoint Local")
-   - Under **Authorized redirect URIs**, click **+ Add URI** and enter:
-     ```
-     http://localhost:5173/settings/integrations
-     ```
-5. Click **Create** — you'll see your **Client ID** and **Client Secret**
+  - Choose **External** → fill in app name and your email → **Save and Continue** through remaining steps
+4. Add yourself as a test user (required while app is in testing mode):
+  - Go to **APIs & Services → OAuth consent screen**
+  - Under **Test users**, click **+ Add users**
+  - Add the Google account you will use to connect in Anchorpoint
+5. Back on the Create OAuth client ID screen:
+  - Application type: **Web application**
+  - Name: anything (e.g. "Anchorpoint Local")
+  - Under **Authorized redirect URIs**, click **+ Add URI** and enter:
+    ```
+    http://localhost:5173/settings/integrations
+    ```
+6. Click **Create** — you'll see your **Client ID** and **Client Secret**
 
 **Step 4 — Add credentials to your `.env`**
 
@@ -275,19 +290,24 @@ Animal-Intelligence/
 
 ## Prerequisites
 
-| Requirement | Version | Notes |
-|-------------|---------|-------|
-| Python      | 3.13+   | Backend |
-| Node.js     | 20+     | Frontend |
+
+| Requirement | Version | Notes                   |
+| ----------- | ------- | ----------------------- |
+| Python      | 3.13+   | Backend                 |
+| Node.js     | 20+     | Frontend                |
 | Ollama      | Latest  | Must be running locally |
+
 
 ---
 
 ## Team
 
+
 | Name          | Role                         |
-|---------------|------------------------------|
+| ------------- | ---------------------------- |
 | Haiden Hunter | Scrum Master / Product Owner |
 | Daley Fraser  | Lead Software Engineer       |
 | Dante Samarco | UX & Engagement Engineer     |
 | Gavin Fehl    | Test Engineer                |
+
+

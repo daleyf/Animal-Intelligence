@@ -40,9 +40,10 @@ async def lifespan(app: FastAPI):
     try:
         enabled = settings_crud.get_value(db, "report_schedule_enabled", "false") == "true"
         time_str = settings_crud.get_value(db, "morning_report_time", "07:00")
+        timezone = settings_crud.get_value(db, "report_schedule_timezone", "UTC")
     finally:
         db.close()
-    report_scheduler.start(enabled=enabled, time_str=time_str)
+    report_scheduler.start(enabled=enabled, time_str=time_str, timezone=timezone)
 
     yield
 

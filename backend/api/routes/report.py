@@ -199,7 +199,8 @@ def report_latest(db: Session = Depends(get_db)):
 
 class ScheduleUpdate(BaseModel):
     enabled: bool
-    time: str  # "HH:MM" in 24-hour UTC
+    time: str       # "HH:MM" 24-hour
+    timezone: str = "UTC"   # IANA timezone name e.g. "America/New_York"
 
 
 @router.get("/report/schedule")
@@ -208,6 +209,7 @@ def get_schedule(db: Session = Depends(get_db)):
     return {
         "enabled": settings_crud.get_value(db, "report_schedule_enabled", "false") == "true",
         "time": settings_crud.get_value(db, "morning_report_time", "07:00"),
+        "timezone": settings_crud.get_value(db, "report_schedule_timezone", "UTC"),
     }
 
 
@@ -217,16 +219,17 @@ def update_schedule(body: ScheduleUpdate, db: Session = Depends(get_db)):
     settings_crud.update_many(db, {
         "report_schedule_enabled": "true" if body.enabled else "false",
         "morning_report_time": body.time,
+        "report_schedule_timezone": body.timezone,
     })
     # Reschedule the live APScheduler job
     try:
         from core.scheduler import report_scheduler
-        report_scheduler.reschedule(enabled=body.enabled, time_str=body.time)
+        report_scheduler.reschedule(enabled=body.enabled, time_str=body.time, timezone=body.timezone)
     except Exception as exc:
         # Scheduler may not be running in test environments
         import logging
         logging.getLogger(__name__).warning("Could not reschedule: %s", exc)
-    return {"enabled": body.enabled, "time": body.time}
+    return {"enabled": body.enabled, "time": body.time, "timezone": body.timezone}
 
 
 @router.get("/report/calendar/events")

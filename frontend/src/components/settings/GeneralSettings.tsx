@@ -9,7 +9,119 @@ import { Button } from "@/components/ui/Button";
 interface ScheduleSettings {
   enabled: boolean;
   time: string;
+  timezone: string;
 }
+
+const TIMEZONES: { label: string; zones: { value: string; label: string }[] }[] = [
+  {
+    label: "UTC",
+    zones: [{ value: "UTC", label: "UTC" }],
+  },
+  {
+    label: "United States & Canada",
+    zones: [
+      { value: "America/New_York", label: "Eastern Time (ET)" },
+      { value: "America/Chicago", label: "Central Time (CT)" },
+      { value: "America/Denver", label: "Mountain Time (MT)" },
+      { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+      { value: "America/Anchorage", label: "Alaska Time (AKT)" },
+      { value: "Pacific/Honolulu", label: "Hawaii Time (HST)" },
+      { value: "America/Toronto", label: "Toronto" },
+      { value: "America/Vancouver", label: "Vancouver" },
+      { value: "America/Halifax", label: "Halifax (AT)" },
+    ],
+  },
+  {
+    label: "Latin America",
+    zones: [
+      { value: "America/Mexico_City", label: "Mexico City" },
+      { value: "America/Bogota", label: "Bogotá" },
+      { value: "America/Lima", label: "Lima" },
+      { value: "America/Santiago", label: "Santiago" },
+      { value: "America/Argentina/Buenos_Aires", label: "Buenos Aires" },
+      { value: "America/Sao_Paulo", label: "São Paulo" },
+    ],
+  },
+  {
+    label: "UK & Ireland",
+    zones: [
+      { value: "Europe/London", label: "London (GMT/BST)" },
+      { value: "Europe/Dublin", label: "Dublin" },
+    ],
+  },
+  {
+    label: "Europe",
+    zones: [
+      { value: "Europe/Paris", label: "Paris (CET)" },
+      { value: "Europe/Berlin", label: "Berlin" },
+      { value: "Europe/Madrid", label: "Madrid" },
+      { value: "Europe/Rome", label: "Rome" },
+      { value: "Europe/Amsterdam", label: "Amsterdam" },
+      { value: "Europe/Brussels", label: "Brussels" },
+      { value: "Europe/Zurich", label: "Zurich" },
+      { value: "Europe/Vienna", label: "Vienna" },
+      { value: "Europe/Stockholm", label: "Stockholm" },
+      { value: "Europe/Oslo", label: "Oslo" },
+      { value: "Europe/Copenhagen", label: "Copenhagen" },
+      { value: "Europe/Warsaw", label: "Warsaw" },
+      { value: "Europe/Prague", label: "Prague" },
+      { value: "Europe/Budapest", label: "Budapest" },
+      { value: "Europe/Helsinki", label: "Helsinki" },
+      { value: "Europe/Athens", label: "Athens" },
+      { value: "Europe/Bucharest", label: "Bucharest" },
+      { value: "Europe/Moscow", label: "Moscow (MSK)" },
+    ],
+  },
+  {
+    label: "Middle East & Africa",
+    zones: [
+      { value: "Asia/Dubai", label: "Dubai (GST)" },
+      { value: "Asia/Riyadh", label: "Riyadh (AST)" },
+      { value: "Asia/Tehran", label: "Tehran (IRST)" },
+      { value: "Asia/Jerusalem", label: "Jerusalem" },
+      { value: "Africa/Cairo", label: "Cairo (EET)" },
+      { value: "Africa/Johannesburg", label: "Johannesburg (SAST)" },
+      { value: "Africa/Lagos", label: "Lagos (WAT)" },
+      { value: "Africa/Nairobi", label: "Nairobi (EAT)" },
+    ],
+  },
+  {
+    label: "South & Central Asia",
+    zones: [
+      { value: "Asia/Karachi", label: "Karachi (PKT)" },
+      { value: "Asia/Kolkata", label: "India (IST)" },
+      { value: "Asia/Dhaka", label: "Dhaka (BST)" },
+    ],
+  },
+  {
+    label: "East & Southeast Asia",
+    zones: [
+      { value: "Asia/Bangkok", label: "Bangkok (ICT)" },
+      { value: "Asia/Jakarta", label: "Jakarta (WIB)" },
+      { value: "Asia/Singapore", label: "Singapore (SGT)" },
+      { value: "Asia/Kuala_Lumpur", label: "Kuala Lumpur" },
+      { value: "Asia/Manila", label: "Manila (PST)" },
+      { value: "Asia/Shanghai", label: "China (CST)" },
+      { value: "Asia/Hong_Kong", label: "Hong Kong (HKT)" },
+      { value: "Asia/Taipei", label: "Taipei" },
+      { value: "Asia/Tokyo", label: "Tokyo (JST)" },
+      { value: "Asia/Seoul", label: "Seoul (KST)" },
+    ],
+  },
+  {
+    label: "Australia & Pacific",
+    zones: [
+      { value: "Australia/Perth", label: "Perth (AWST)" },
+      { value: "Australia/Adelaide", label: "Adelaide (ACST)" },
+      { value: "Australia/Brisbane", label: "Brisbane (AEST)" },
+      { value: "Australia/Sydney", label: "Sydney (AEST/AEDT)" },
+      { value: "Australia/Melbourne", label: "Melbourne" },
+      { value: "Pacific/Auckland", label: "Auckland (NZST)" },
+      { value: "Pacific/Fiji", label: "Fiji (FJT)" },
+      { value: "Pacific/Honolulu", label: "Honolulu (HST)" },
+    ],
+  },
+];
 
 export function GeneralSettings() {
   const [clearConfirm, setClearConfirm] = useState(false);
@@ -35,6 +147,9 @@ export function GeneralSettings() {
       }),
     onSuccess: (data) => queryClient.setQueryData(["report-schedule"], data),
   });
+
+  const tz = schedule?.timezone ?? "UTC";
+  const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   const personalizationEnabled = settings?.personalization_enabled === "true";
 
@@ -127,6 +242,7 @@ export function GeneralSettings() {
               scheduleMutation.mutate({
                 enabled: !(schedule?.enabled ?? false),
                 time: schedule?.time ?? "07:00",
+                timezone: tz === "UTC" ? browserTz : tz,
               })
             }
             role="switch"
@@ -161,25 +277,61 @@ export function GeneralSettings() {
           </span>
         </label>
         {schedule?.enabled && (
-          <div>
-            <div style={{ fontSize: "12px", color: "var(--color-text-muted)", marginBottom: "6px" }}>
-              Time (UTC)
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div>
+              <div style={{ fontSize: "12px", color: "var(--color-text-muted)", marginBottom: "6px" }}>
+                Time
+              </div>
+              <input
+                type="time"
+                value={schedule.time}
+                onChange={(e) =>
+                  scheduleMutation.mutate({ enabled: true, time: e.target.value, timezone: tz })
+                }
+                style={{
+                  background: "var(--color-bg)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "var(--radius-sm)",
+                  color: "var(--color-text)",
+                  fontSize: "13px",
+                  padding: "6px 8px",
+                  fontFamily: "var(--font-sans)",
+                  outline: "none",
+                }}
+              />
             </div>
-            <input
-              type="time"
-              value={schedule.time}
-              onChange={(e) => scheduleMutation.mutate({ enabled: true, time: e.target.value })}
-              style={{
-                background: "var(--color-bg)",
-                border: "1px solid var(--color-border)",
-                borderRadius: "var(--radius-sm)",
-                color: "var(--color-text)",
-                fontSize: "13px",
-                padding: "6px 8px",
-                fontFamily: "var(--font-sans)",
-                outline: "none",
-              }}
-            />
+            <div>
+              <div style={{ fontSize: "12px", color: "var(--color-text-muted)", marginBottom: "6px" }}>
+                Timezone
+              </div>
+              <select
+                value={tz}
+                onChange={(e) =>
+                  scheduleMutation.mutate({ enabled: true, time: schedule.time, timezone: e.target.value })
+                }
+                style={{
+                  background: "var(--color-bg)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "var(--radius-sm)",
+                  color: "var(--color-text)",
+                  fontSize: "13px",
+                  padding: "6px 8px",
+                  fontFamily: "var(--font-sans)",
+                  outline: "none",
+                  minWidth: "240px",
+                }}
+              >
+                {TIMEZONES.map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.zones.map((z) => (
+                      <option key={z.value} value={z.value}>
+                        {z.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
           </div>
         )}
       </section>
