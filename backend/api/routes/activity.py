@@ -29,7 +29,7 @@ def _log_to_dict(row: ToolLog) -> dict:
         "duration_ms": row.duration_ms,
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "session_id": row.session_id,
-        "sub_queries": row.sub_queries,        # JSON string or None
+        "sub_queries": row.sub_queries,  # JSON string or None
         "data_destination": row.data_destination,
     }
 

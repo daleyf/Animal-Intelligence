@@ -88,7 +88,7 @@ class ReportScheduler:
             trigger=CronTrigger(hour=hour, minute=minute, timezone=timezone),
             id=_JOB_ID,
             replace_existing=True,
-            misfire_grace_time=600,   # fire up to 10 min late if server was down
+            misfire_grace_time=600,  # fire up to 10 min late if server was down
         )
 
 

@@ -95,9 +95,14 @@ class WeatherClient:
         if not self._api_key:
             return WeatherData(
                 location=location,
-                temperature_c=0, feels_like_c=0, description="",
-                humidity_pct=0, wind_speed_ms=0, icon="",
-                forecast_high_c=0, forecast_low_c=0,
+                temperature_c=0,
+                feels_like_c=0,
+                description="",
+                humidity_pct=0,
+                wind_speed_ms=0,
+                icon="",
+                forecast_high_c=0,
+                forecast_low_c=0,
                 error="OpenWeatherMap API key not configured.",
             )
 
@@ -113,9 +118,14 @@ class WeatherClient:
             if not geo_results:
                 return WeatherData(
                     location=location,
-                    temperature_c=0, feels_like_c=0, description="",
-                    humidity_pct=0, wind_speed_ms=0, icon="",
-                    forecast_high_c=0, forecast_low_c=0,
+                    temperature_c=0,
+                    feels_like_c=0,
+                    description="",
+                    humidity_pct=0,
+                    wind_speed_ms=0,
+                    icon="",
+                    forecast_high_c=0,
+                    forecast_low_c=0,
                     error=f"Location not found: {location!r}",
                 )
 
@@ -144,7 +154,13 @@ class WeatherClient:
             # Step 3: 5-day / 3-hour forecast — first 8 periods covers today
             forecast_resp = await self._http.get(
                 FORECAST_URL,
-                params={"lat": lat, "lon": lon, "appid": self._api_key, "units": "imperial", "cnt": 8},
+                params={
+                    "lat": lat,
+                    "lon": lon,
+                    "appid": self._api_key,
+                    "units": "imperial",
+                    "cnt": 8,
+                },
             )
             forecast_resp.raise_for_status()
             forecast = forecast_resp.json()
@@ -152,7 +168,8 @@ class WeatherClient:
             # Filter forecast items to today (UTC date) and extract high/low
             today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             today_items = [
-                item for item in forecast.get("list", [])
+                item
+                for item in forecast.get("list", [])
                 if item.get("dt_txt", "").startswith(today_str)
             ]
 
@@ -186,16 +203,30 @@ class WeatherClient:
                 pass
             logger.warning("Weather fetch failed: %s", msg)
             return WeatherData(
-                location=location, temperature_c=0, feels_like_c=0, description="",
-                humidity_pct=0, wind_speed_ms=0, icon="", forecast_high_c=0,
-                forecast_low_c=0, error=msg,
+                location=location,
+                temperature_c=0,
+                feels_like_c=0,
+                description="",
+                humidity_pct=0,
+                wind_speed_ms=0,
+                icon="",
+                forecast_high_c=0,
+                forecast_low_c=0,
+                error=msg,
             )
         except Exception as exc:
             logger.warning("Weather fetch failed: %s", exc)
             return WeatherData(
-                location=location, temperature_c=0, feels_like_c=0, description="",
-                humidity_pct=0, wind_speed_ms=0, icon="", forecast_high_c=0,
-                forecast_low_c=0, error=str(exc),
+                location=location,
+                temperature_c=0,
+                feels_like_c=0,
+                description="",
+                humidity_pct=0,
+                wind_speed_ms=0,
+                icon="",
+                forecast_high_c=0,
+                forecast_low_c=0,
+                error=str(exc),
             )
 
     async def aclose(self) -> None:

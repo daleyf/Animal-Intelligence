@@ -70,12 +70,14 @@ def client(test_db_engine):
 class TestPIISanitizer:
     def test_clean_string_unchanged(self):
         from core.pii_sanitizer import sanitize
+
         result, changed = sanitize("What is the capital of France?")
         assert result == "What is the capital of France?"
         assert changed is False
 
     def test_email_redacted(self):
         from core.pii_sanitizer import sanitize
+
         result, changed = sanitize("Contact me at john.doe@example.com for info")
         assert "[EMAIL]" in result
         assert "john.doe@example.com" not in result
@@ -83,6 +85,7 @@ class TestPIISanitizer:
 
     def test_phone_redacted(self):
         from core.pii_sanitizer import sanitize
+
         result, changed = sanitize("Call me at 412-555-1234 anytime")
         assert "[PHONE]" in result
         assert "412-555-1234" not in result
@@ -90,6 +93,7 @@ class TestPIISanitizer:
 
     def test_ssn_redacted(self):
         from core.pii_sanitizer import sanitize
+
         result, changed = sanitize("My SSN is 123-45-6789")
         assert "[SSN]" in result
         assert "123-45-6789" not in result
@@ -97,6 +101,7 @@ class TestPIISanitizer:
 
     def test_profile_name_redacted(self):
         from core.pii_sanitizer import sanitize
+
         result, changed = sanitize("John Smith is looking for jobs", name="John Smith")
         assert "[NAME]" in result
         assert "John Smith" not in result
@@ -104,6 +109,7 @@ class TestPIISanitizer:
 
     def test_home_location_redacted(self):
         from core.pii_sanitizer import sanitize
+
         result, changed = sanitize(
             "restaurants near Pittsburgh PA",
             home_location="Pittsburgh PA",
@@ -114,6 +120,7 @@ class TestPIISanitizer:
 
     def test_work_location_redacted(self):
         from core.pii_sanitizer import sanitize
+
         result, changed = sanitize(
             "parking near CMU campus",
             work_location="CMU campus",
@@ -124,6 +131,7 @@ class TestPIISanitizer:
 
     def test_multiple_pii_types(self):
         from core.pii_sanitizer import sanitize
+
         result, changed = sanitize(
             "Alice (alice@test.com) at 555-123-4567",
             name="Alice",
@@ -135,12 +143,14 @@ class TestPIISanitizer:
 
     def test_empty_string(self):
         from core.pii_sanitizer import sanitize
+
         result, changed = sanitize("")
         assert result == ""
         assert changed is False
 
     def test_none_profile_fields_ignored(self):
         from core.pii_sanitizer import sanitize
+
         # Should not raise with None profile fields
         result, _ = sanitize("hello world", name=None, home_location=None)
         assert result == "hello world"
@@ -150,29 +160,34 @@ class TestPIISanitizer:
 class TestEncryption:
     def test_encrypt_decrypt_roundtrip(self):
         from core.encryption import encrypt_field, decrypt_field
+
         original = "my-secret-token-abc123"
         encrypted = encrypt_field(original)
-        assert encrypted != original          # must differ
+        assert encrypted != original  # must differ
         decrypted = decrypt_field(encrypted)
         assert decrypted == original
 
     def test_encrypt_none_returns_none(self):
         from core.encryption import encrypt_field
+
         assert encrypt_field(None) is None
 
     def test_decrypt_none_returns_none(self):
         from core.encryption import decrypt_field
+
         assert decrypt_field(None) is None
 
     def test_decrypt_legacy_plaintext_returns_as_is(self):
         """decrypt_field must not crash on a non-Fernet plaintext value."""
         from core.encryption import decrypt_field
+
         raw = "plaintext_that_was_never_encrypted"
         result = decrypt_field(raw)
         assert result == raw  # graceful degradation
 
     def test_different_values_produce_different_ciphertexts(self):
         from core.encryption import encrypt_field
+
         a = encrypt_field("token-a")
         b = encrypt_field("token-b")
         assert a != b
@@ -182,6 +197,7 @@ class TestEncryption:
 class TestContextWindowOptimisation:
     def _msg(self, role, content):
         from unittest.mock import MagicMock
+
         m = MagicMock()
         m.role = role
         m.content = content
@@ -189,17 +205,23 @@ class TestContextWindowOptimisation:
 
     def test_stats_dict_returned(self):
         from core.prompt_builder import build_context_messages
+
         msgs = [self._msg("user", "Hello")]
         _, stats = build_context_messages(msgs, system_prompt="sys", max_tokens=4096)
         required_keys = {
-            "max_tokens", "system_tokens", "history_tokens",
-            "messages_included", "messages_total", "budget_exhausted",
+            "max_tokens",
+            "system_tokens",
+            "history_tokens",
+            "messages_included",
+            "messages_total",
+            "budget_exhausted",
         }
         assert required_keys.issubset(stats.keys())
 
     def test_min_recent_messages_always_kept(self):
         """Even under extreme budget pressure the most recent turns survive."""
         from core.prompt_builder import build_context_messages
+
         msgs = [
             self._msg("user", "old " * 500),
             self._msg("assistant", "old reply " * 500),
@@ -207,8 +229,11 @@ class TestContextWindowOptimisation:
             self._msg("assistant", "recent answer"),
         ]
         result, _ = build_context_messages(
-            msgs, system_prompt="", max_tokens=100,
-            response_buffer=0, min_recent_messages=2,
+            msgs,
+            system_prompt="",
+            max_tokens=100,
+            response_buffer=0,
+            min_recent_messages=2,
         )
         contents = {m["content"] for m in result}
         assert "recent question" in contents
@@ -216,16 +241,21 @@ class TestContextWindowOptimisation:
 
     def test_memory_budget_ratio_reflected_in_stats(self):
         from core.prompt_builder import build_context_messages
+
         msgs = [self._msg("user", "hi")]
         _, stats = build_context_messages(
-            msgs, system_prompt="", max_tokens=1000,
-            response_buffer=0, memory_budget_ratio=0.3,
+            msgs,
+            system_prompt="",
+            max_tokens=1000,
+            response_buffer=0,
+            memory_budget_ratio=0.3,
         )
         assert "memory_budget_reserved" in stats
         assert stats["memory_budget_reserved"] > 0
 
     def test_budget_exhausted_flag(self):
         from core.prompt_builder import build_context_messages
+
         # Many long messages in a tiny budget
         msgs = [self._msg("user", "word " * 300) for _ in range(10)]
         _, stats = build_context_messages(msgs, system_prompt="", max_tokens=50)
@@ -249,6 +279,7 @@ def test_hardware_recommendation_endpoint(client):
 def test_hardware_recommendation_model_is_known(client):
     """Returned model name should be from the curated list."""
     from core.ollama_client import KNOWN_MODELS
+
     resp = client.get("/api/v1/models/recommendation")
     assert resp.status_code == 200
     model_name = resp.json()["recommended_model"]
@@ -277,8 +308,9 @@ def test_create_custom_profile(client):
 
 
 def test_create_and_list_custom_profiles(client):
-    client.post("/api/v1/voice/custom-profiles",
-                json={"name": "Energetic", "rate": 1.5, "pitch": 1.2})
+    client.post(
+        "/api/v1/voice/custom-profiles", json={"name": "Energetic", "rate": 1.5, "pitch": 1.2}
+    )
     resp = client.get("/api/v1/voice/custom-profiles")
     assert resp.status_code == 200
     names = [p["name"] for p in resp.json()["profiles"]]

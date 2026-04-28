@@ -81,9 +81,7 @@ class PersonalizedNewsClient:
 
         for topic in topics:
             try:
-                results = await web_search_client.search(
-                    f"{topic} latest news today", count=3
-                )
+                results = await web_search_client.search(f"{topic} latest news today", count=3)
                 for r in results:
                     if r.url not in seen_urls:
                         seen_urls.add(r.url)

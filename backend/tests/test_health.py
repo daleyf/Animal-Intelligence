@@ -23,7 +23,8 @@ def client():
 # Health endpoint test
 # -------------- #
 def test_health_endpoint_returns_ok(client):
-    """Test that the /health endpoint returns status ok and includes version and Ollama connection status."""
+    """Test that the /health endpoint returns status ok and includes version
+    and Ollama connection status."""
     with patch(
         "core.ollama_client.OllamaClient.is_running",
         new_callable=AsyncMock,

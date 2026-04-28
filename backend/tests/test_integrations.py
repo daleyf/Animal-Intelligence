@@ -1,5 +1,5 @@
 """
-Integration tests 
+Integration tests
 
 These tests use an in-memory SQLite DB and a mock Ollama client so no real
 Ollama process is required.
@@ -86,6 +86,7 @@ def test_voice_profiles(client):
     for p in profiles:
         assert "rate" in p and "pitch" in p and "name" in p
 
+
 # get current voice settings, verify shape and types
 def test_voice_settings_get(client):
     """Verify the voice settings endpoint returns the expected fields with correct types."""
@@ -98,6 +99,7 @@ def test_voice_settings_get(client):
     assert "pitch" in data
     assert isinstance(data["rate"], float)
 
+
 # update voice settings, verify changes persisted
 def test_voice_settings_update_toggle(client):
     """Test updating voice settings to enable/disable and verify changes persist."""
@@ -107,6 +109,7 @@ def test_voice_settings_update_toggle(client):
 
     resp = client.put("/api/v1/voice/settings", json={"enabled": False})
     assert resp.json()["enabled"] is False
+
 
 # update voice settings with profile, verify rate/pitch sync
 def test_voice_settings_select_profile(client):
@@ -122,6 +125,7 @@ def test_voice_settings_select_profile(client):
     assert data["rate"] == pytest.approx(0.9, abs=0.01)
     assert data["pitch"] == pytest.approx(1.15, abs=0.01)
 
+
 #  allow direct setting of rate/pitch, verify it overrides profile values
 def test_voice_settings_fine_tune(client):
     """Test directly setting rate and pitch overrides profile defaults."""
@@ -131,11 +135,13 @@ def test_voice_settings_fine_tune(client):
     assert data["rate"] == pytest.approx(1.25, abs=0.01)
     assert data["pitch"] == pytest.approx(0.8, abs=0.01)
 
+
 # Invalid updates should return 422
 def test_voice_settings_invalid_profile(client):
     """Test that setting an invalid profile returns a validation error."""
     resp = client.put("/api/v1/voice/settings", json={"profile": "robot"})
     assert resp.status_code == 422
+
 
 # rate out of range should return 422
 def test_voice_settings_rate_out_of_range(client):
@@ -158,6 +164,7 @@ def test_activity_list_empty(client):
     assert "total" in data
     assert isinstance(data["logs"], list)
 
+
 # after logging some activity, it should appear in the list with correct fields
 def test_activity_log_written_by_tool_logger(client, test_db_engine):
     """Write a log entry via the tool_logger and verify it appears in the API."""
@@ -166,7 +173,9 @@ def test_activity_log_written_by_tool_logger(client, test_db_engine):
 
     db = sm(bind=test_db_engine)()
     try:
-        log_tool_call(db, "weather", input_summary="location=Pittsburgh", success=True, duration_ms=120)  # noqa: E501
+        log_tool_call(
+            db, "weather", input_summary="location=Pittsburgh", success=True, duration_ms=120
+        )  # noqa: E501
     finally:
         db.close()
 
@@ -186,7 +195,14 @@ def test_activity_filter_by_tool(client, test_db_engine):
 
     db = sm(bind=test_db_engine)()
     try:
-        log_tool_call(db, "news", input_summary="categories=tech", success=False, error_message="API key missing", duration_ms=30)  # noqa: E501
+        log_tool_call(
+            db,
+            "news",
+            input_summary="categories=tech",
+            success=False,
+            error_message="API key missing",
+            duration_ms=30,
+        )  # noqa: E501
     finally:
         db.close()
 
@@ -322,8 +338,12 @@ def test_tool_logger_failure(test_db_engine):
     db = sm(bind=test_db_engine)()
     try:
         log_tool_call(
-            db, "calendar", "fetch_events",
-            success=False, error_message="Token expired", duration_ms=200,
+            db,
+            "calendar",
+            "fetch_events",
+            success=False,
+            error_message="Token expired",
+            duration_ms=200,
         )
         rows = db.scalars(select(ToolLog).where(ToolLog.tool_name == "calendar")).all()
         failed = next(r for r in rows if not r.success)

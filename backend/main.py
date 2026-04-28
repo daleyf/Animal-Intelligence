@@ -36,6 +36,7 @@ async def lifespan(app: FastAPI):
 
     # Start background scheduler with saved settings
     from core.scheduler import report_scheduler
+
     db = SessionLocal()
     try:
         enabled = settings_crud.get_value(db, "report_schedule_enabled", "false") == "true"

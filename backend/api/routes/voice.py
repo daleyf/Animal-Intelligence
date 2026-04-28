@@ -75,6 +75,7 @@ def _profile_rate_pitch(profile_id: str, db: Session) -> tuple[float, float] | N
 # Built-in profile routes
 # ---------------------------------------------------------------------------
 
+
 @router.get("/voice/profiles")
 def get_profiles(db: Session = Depends(get_db)):
     """Return built-in + user-created voice profiles."""
@@ -147,6 +148,7 @@ def update_voice_settings(
 # Custom profile CRUD
 # ---------------------------------------------------------------------------
 
+
 class CustomProfileCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     rate: float = Field(1.0, ge=0.5, le=2.0)
@@ -208,11 +210,14 @@ def delete_custom_profile(
     # If this profile is currently active, reset to neutral
     current = settings_crud.get_value(db, "voice_profile", "neutral")
     if current == profile_id:
-        settings_crud.update_many(db, {
-            "voice_profile": "neutral",
-            "voice_rate": "1.0",
-            "voice_pitch": "1.0",
-        })
+        settings_crud.update_many(
+            db,
+            {
+                "voice_profile": "neutral",
+                "voice_rate": "1.0",
+                "voice_pitch": "1.0",
+            },
+        )
 
     db.delete(profile)
     db.commit()

@@ -44,6 +44,7 @@ def _get_fernet():
 
     # 1. Environment variable
     from core.config import settings
+
     raw_key: str | None = getattr(settings, "encryption_key", None)
 
     # 2. Key file

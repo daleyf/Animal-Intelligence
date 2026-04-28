@@ -55,6 +55,7 @@ def _get_or_create_token(db: Session) -> GoogleCalendarToken:
 def _decrypted_token(row: GoogleCalendarToken):
     """Return a SimpleNamespace with sensitive fields decrypted for in-memory use."""
     from types import SimpleNamespace
+
     return SimpleNamespace(
         id=row.id,
         access_token=decrypt_field(row.access_token),
@@ -69,6 +70,7 @@ def _decrypted_token(row: GoogleCalendarToken):
 
 
 # ── Morning report SSE ────────────────────────────────────────────────────────
+
 
 @router.get("/report")
 async def get_report(
@@ -105,10 +107,13 @@ async def get_report(
             conv_crud.add_message(db, convo.id, "assistant", full_content)
 
             # Also persist to AppSettings for scheduled-report compatibility
-            settings_crud.update_many(db, {
-                "last_report_content": full_content,
-                "last_report_generated_at": datetime.now(timezone.utc).isoformat(),
-            })
+            settings_crud.update_many(
+                db,
+                {
+                    "last_report_content": full_content,
+                    "last_report_generated_at": datetime.now(timezone.utc).isoformat(),
+                },
+            )
 
             yield _sse({"type": "done"})
         except Exception as exc:
@@ -122,6 +127,7 @@ async def get_report(
 
 
 # ── Integration status ────────────────────────────────────────────────────────
+
 
 @router.get("/report/status")
 def report_status(db: Session = Depends(get_db)):
@@ -137,6 +143,7 @@ def report_status(db: Session = Depends(get_db)):
 
 
 # ── Google Calendar OAuth ─────────────────────────────────────────────────────
+
 
 @router.get("/report/calendar/auth")
 def calendar_auth():
@@ -189,6 +196,7 @@ def calendar_disconnect(db: Session = Depends(get_db)):
 
 # ── Schedule settings ─────────────────────────────────────────────────────────
 
+
 @router.get("/report/latest")
 def report_latest(db: Session = Depends(get_db)):
     """Return the most recently cached scheduled report (may be empty)."""
@@ -199,8 +207,8 @@ def report_latest(db: Session = Depends(get_db)):
 
 class ScheduleUpdate(BaseModel):
     enabled: bool
-    time: str       # "HH:MM" 24-hour
-    timezone: str = "UTC"   # IANA timezone name e.g. "America/New_York"
+    time: str  # "HH:MM" 24-hour
+    timezone: str = "UTC"  # IANA timezone name e.g. "America/New_York"
 
 
 @router.get("/report/schedule")
@@ -216,18 +224,25 @@ def get_schedule(db: Session = Depends(get_db)):
 @router.put("/report/schedule")
 def update_schedule(body: ScheduleUpdate, db: Session = Depends(get_db)):
     """Update scheduling configuration and reschedule the background job."""
-    settings_crud.update_many(db, {
-        "report_schedule_enabled": "true" if body.enabled else "false",
-        "morning_report_time": body.time,
-        "report_schedule_timezone": body.timezone,
-    })
+    settings_crud.update_many(
+        db,
+        {
+            "report_schedule_enabled": "true" if body.enabled else "false",
+            "morning_report_time": body.time,
+            "report_schedule_timezone": body.timezone,
+        },
+    )
     # Reschedule the live APScheduler job
     try:
         from core.scheduler import report_scheduler
-        report_scheduler.reschedule(enabled=body.enabled, time_str=body.time, timezone=body.timezone)
+
+        report_scheduler.reschedule(
+            enabled=body.enabled, time_str=body.time, timezone=body.timezone
+        )
     except Exception as exc:
         # Scheduler may not be running in test environments
         import logging
+
         logging.getLogger(__name__).warning("Could not reschedule: %s", exc)
     return {"enabled": body.enabled, "time": body.time, "timezone": body.timezone}
 

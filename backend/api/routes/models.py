@@ -153,7 +153,8 @@ _TIERS = [
 def _get_ram_gb() -> float:
     try:
         import psutil
-        return psutil.virtual_memory().total / (1024 ** 3)
+
+        return psutil.virtual_memory().total / (1024**3)
     except Exception:
         return 0.0
 

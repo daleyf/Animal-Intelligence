@@ -108,18 +108,13 @@ class OllamaClient:
         async for token in self._stream_chat_attempt(model, payload):
             yield token
 
-    async def _stream_chat_attempt(
-        self, model: str, payload: dict
-    ) -> AsyncIterator[str]:
+    async def _stream_chat_attempt(self, model: str, payload: dict) -> AsyncIterator[str]:
         """Inner streaming attempt; retries without system message on 500."""
         try:
-            async with self._client.stream(
-                "POST", "/api/chat", json=payload
-            ) as response:
+            async with self._client.stream("POST", "/api/chat", json=payload) as response:
                 if response.status_code == 404:
                     raise ValueError(
-                        f"Model '{model}' not found in Ollama. "
-                        f"Run: ollama pull {model}"
+                        f"Model '{model}' not found in Ollama. " f"Run: ollama pull {model}"
                     )
                 if response.status_code >= 400:
                     body = await response.aread()
@@ -176,9 +171,7 @@ class OllamaClient:
         """
         payload = {"name": model_name, "stream": True}
         try:
-            async with self._client.stream(
-                "POST", "/api/pull", json=payload
-            ) as response:
+            async with self._client.stream("POST", "/api/pull", json=payload) as response:
                 response.raise_for_status()
                 async for line in response.aiter_lines():
                     if not line.strip():

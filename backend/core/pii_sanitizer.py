@@ -28,14 +28,10 @@ import re
 
 # ── Compiled patterns ──────────────────────────────────────────────────────────
 
-_EMAIL_RE = re.compile(
-    r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b"
-)
+_EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b")
 
 # North-American phone formats: (412) 555-1234 / 412-555-1234 / 412.555.1234 / +14125551234
-_PHONE_RE = re.compile(
-    r"\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"
-)
+_PHONE_RE = re.compile(r"\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b")
 
 _SSN_RE = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
 
@@ -84,12 +80,8 @@ def sanitize(
             r"\b" + re.escape(name.strip()) + r"\b", "[NAME]", result, flags=re.IGNORECASE
         )
     if home_location and home_location.strip():
-        result = re.sub(
-            re.escape(home_location.strip()), "[HOME]", result, flags=re.IGNORECASE
-        )
+        result = re.sub(re.escape(home_location.strip()), "[HOME]", result, flags=re.IGNORECASE)
     if work_location and work_location.strip():
-        result = re.sub(
-            re.escape(work_location.strip()), "[WORK]", result, flags=re.IGNORECASE
-        )
+        result = re.sub(re.escape(work_location.strip()), "[WORK]", result, flags=re.IGNORECASE)
 
     return result, result != text

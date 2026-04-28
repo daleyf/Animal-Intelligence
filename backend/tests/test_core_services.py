@@ -210,6 +210,7 @@ class TestProfileRoute:
         assert "hiking" in data["interests"]
         assert "Anchorpoint" in data["projects"]
 
+
 # Conversations route tests
 # -------------- #
 class TestConversationsRoute:

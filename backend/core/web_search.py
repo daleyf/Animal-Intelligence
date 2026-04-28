@@ -24,8 +24,8 @@ OLLAMA_API_BASE = "https://ollama.com/api"
 OLLAMA_SEARCH_PATH = "/web_search"
 OLLAMA_FETCH_PATH = "/web_fetch"
 
-_SEARCH_TIMEOUT = 10.0   # seconds
-_FETCH_TIMEOUT = 12.0    # seconds — page fetch can be slower
+_SEARCH_TIMEOUT = 10.0  # seconds
+_FETCH_TIMEOUT = 12.0  # seconds — page fetch can be slower
 
 
 @dataclass
@@ -33,7 +33,7 @@ class SearchResult:
     title: str
     url: str
     snippet: str
-    source: str = ""   # domain name
+    source: str = ""  # domain name
     content: str = ""  # fetched page content (populated by fetch_content)
 
     def to_dict(self) -> dict:
@@ -130,6 +130,7 @@ def _domain(url: str) -> str:
     """Extract bare domain from a URL."""
     try:
         import urllib.parse
+
         return urllib.parse.urlparse(url).netloc.lstrip("www.")
     except Exception:
         return ""

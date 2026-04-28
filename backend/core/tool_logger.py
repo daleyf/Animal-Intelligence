@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 # Low-level write helper
 # ---------------------------------------------------------------------------
 
+
 def log_tool_call(
     db: Session,
     tool_name: str,
@@ -75,6 +76,7 @@ def log_tool_call(
 # Synchronous context manager
 # ---------------------------------------------------------------------------
 
+
 @contextmanager
 def timed_tool(
     db: Session,
@@ -96,16 +98,25 @@ def timed_tool(
         yield
         elapsed = int((time.monotonic() - start) * 1000)
         log_tool_call(
-            db, tool_name, input_summary,
-            success=True, duration_ms=elapsed,
-            session_id=session_id, data_destination=data_destination,
+            db,
+            tool_name,
+            input_summary,
+            success=True,
+            duration_ms=elapsed,
+            session_id=session_id,
+            data_destination=data_destination,
         )
     except Exception as exc:
         elapsed = int((time.monotonic() - start) * 1000)
         log_tool_call(
-            db, tool_name, input_summary,
-            success=False, error_message=str(exc), duration_ms=elapsed,
-            session_id=session_id, data_destination=data_destination,
+            db,
+            tool_name,
+            input_summary,
+            success=False,
+            error_message=str(exc),
+            duration_ms=elapsed,
+            session_id=session_id,
+            data_destination=data_destination,
         )
         raise
 
@@ -113,6 +124,7 @@ def timed_tool(
 # ---------------------------------------------------------------------------
 # Async context manager
 # ---------------------------------------------------------------------------
+
 
 @asynccontextmanager
 async def async_timed_tool(
@@ -135,15 +147,24 @@ async def async_timed_tool(
         yield
         elapsed = int((time.monotonic() - start) * 1000)
         log_tool_call(
-            db, tool_name, input_summary,
-            success=True, duration_ms=elapsed,
-            session_id=session_id, data_destination=data_destination,
+            db,
+            tool_name,
+            input_summary,
+            success=True,
+            duration_ms=elapsed,
+            session_id=session_id,
+            data_destination=data_destination,
         )
     except Exception as exc:
         elapsed = int((time.monotonic() - start) * 1000)
         log_tool_call(
-            db, tool_name, input_summary,
-            success=False, error_message=str(exc), duration_ms=elapsed,
-            session_id=session_id, data_destination=data_destination,
+            db,
+            tool_name,
+            input_summary,
+            success=False,
+            error_message=str(exc),
+            duration_ms=elapsed,
+            session_id=session_id,
+            data_destination=data_destination,
         )
         raise

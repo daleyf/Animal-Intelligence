@@ -122,9 +122,14 @@ def build_context_messages(
     # ── Non-system messages (newest-first for processing) ──────────────────
     non_system = [m for m in all_messages if m.role != "system"]
     if not non_system:
-        return [], {"max_tokens": max_tokens, "system_tokens": system_tokens,
-                    "history_tokens": 0, "messages_included": 0,
-                    "messages_total": 0, "budget_exhausted": False}
+        return [], {
+            "max_tokens": max_tokens,
+            "system_tokens": system_tokens,
+            "history_tokens": 0,
+            "messages_included": 0,
+            "messages_total": 0,
+            "budget_exhausted": False,
+        }
 
     # ── Step 1: Always include min_recent_messages most recent turns ────────
     guaranteed = non_system[-min_recent_messages:]

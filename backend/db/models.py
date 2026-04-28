@@ -114,8 +114,8 @@ class ToolLog(Base):
     __tablename__ = "tool_logs"
 
     id = Column(String, primary_key=True, default=_new_uuid)
-    tool_name = Column(String(100), nullable=False)   # e.g. "web_search", "weather"
-    input_summary = Column(Text, nullable=True)        # sanitized params (≤500 chars)
+    tool_name = Column(String(100), nullable=False)  # e.g. "web_search", "weather"
+    input_summary = Column(Text, nullable=True)  # sanitized params (≤500 chars)
     success = Column(Boolean, nullable=False)
     error_message = Column(Text, nullable=True)
     duration_ms = Column(Integer, nullable=True)
@@ -139,8 +139,8 @@ class GoogleCalendarToken(Base):
     __tablename__ = "google_calendar_tokens"
 
     id = Column(Integer, primary_key=True, default=1)
-    access_token = Column(Text, nullable=True)    # encrypted
-    refresh_token = Column(Text, nullable=True)   # encrypted
+    access_token = Column(Text, nullable=True)  # encrypted
+    refresh_token = Column(Text, nullable=True)  # encrypted
     token_uri = Column(String(255), nullable=True)
     client_id = Column(String(255), nullable=True)
     client_secret = Column(String(255), nullable=True)  # encrypted
@@ -160,6 +160,6 @@ class CustomVoiceProfile(Base):
 
     id = Column(String, primary_key=True, default=_new_uuid)
     name = Column(String(100), nullable=False)
-    rate = Column(Float, nullable=False, default=1.0)   # 0.5 – 2.0
+    rate = Column(Float, nullable=False, default=1.0)  # 0.5 – 2.0
     pitch = Column(Float, nullable=False, default=1.0)  # 0.0 – 2.0
     created_at = Column(DateTime, default=_utcnow)
