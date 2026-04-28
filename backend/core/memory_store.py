@@ -69,18 +69,14 @@ class MemoryStore:
 
         try:
             self._client = chromadb.PersistentClient(path=persist_directory)
-            self._ef = SentenceTransformerEmbeddingFunction(
-                model_name="all-MiniLM-L6-v2"
-            )
+            self._ef = SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
             self._collection = self._client.get_or_create_collection(
                 name=self.COLLECTION_NAME,
                 embedding_function=self._ef,
                 metadata={"hnsw:space": "cosine"},
             )
             self._available = True
-            logger.info(
-                "MemoryStore ready — %d existing memories.", self._collection.count()
-            )
+            logger.info("MemoryStore ready — %d existing memories.", self._collection.count())
         except Exception as exc:
             self._available = False
             logger.error("MemoryStore init failed: %s", exc)
@@ -130,9 +126,7 @@ class MemoryStore:
 
     # ── Read ───────────────────────────────────────────────────────────────────
 
-    def retrieve_relevant(
-        self, query: str, n_results: int = 3
-    ) -> list[MemoryEntry]:
+    def retrieve_relevant(self, query: str, n_results: int = 3) -> list[MemoryEntry]:
         """Return the N most semantically relevant past memories for *query*."""
         if not self._available:
             return []

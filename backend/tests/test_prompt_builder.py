@@ -12,7 +12,8 @@ from core.prompt_builder import build_system_prompt, build_context_messages, est
 # -------------- #
 class TestEstimateTokens:
     def test_empty_string(self):
-        """Test that an empty string returns at least 1 token (some models treat empty input as 1 token)."""
+        """Test that an empty string returns at least 1 token
+        (some models treat empty input as 1 token)."""
         assert estimate_tokens("") == 1
 
     def test_single_word(self):
@@ -36,14 +37,16 @@ class TestBuildSystemPrompt:
         assert "private" in result
 
     def test_personalization_disabled(self):
-        """Test that if personalization is disabled, profile info is not included even if profile is provided."""
+        """Test that if personalization is disabled, profile info is not included
+        even if profile is provided."""
         profile = MagicMock()
         profile.name = "Alice"
         result = build_system_prompt(profile=profile, personalization_enabled=False)
         assert "Alice" not in result
 
     def test_personalization_enabled_with_name(self):
-        """Test that if personalization is enabled and profile has a name, it is included in the system prompt."""
+        """Test that if personalization is enabled and profile has a name,
+        it is included in the system prompt."""
         profile = MagicMock()
         profile.name = "Alice"
         profile.home_location = "Pittsburgh"
@@ -57,7 +60,8 @@ class TestBuildSystemPrompt:
         assert "Anchorpoint" in result
 
     def test_partial_profile_no_errors(self):
-        """Test that if the profile has some None fields, it does not cause errors and includes available info."""
+        """Test that if the profile has some None fields, it does not cause errors
+        and includes available info."""
         profile = MagicMock()
         profile.name = None
         profile.home_location = None
@@ -96,7 +100,8 @@ class TestBuildContextMessages:
         assert stats["messages_included"] == 2
 
     def test_skips_system_role_messages(self):
-        """Test that messages with role 'system' are not included in the context messages (system prompt is separate)."""
+        """Test that messages with role 'system' are not included in the context messages
+        (system prompt is separate)."""
         messages = [
             self._make_message("system", "This is a system message"),
             self._make_message("user", "Hello"),
@@ -118,7 +123,8 @@ class TestBuildContextMessages:
         assert result[-1]["content"] == "recent"
 
     def test_newest_message_always_included(self):
-        """Test that the newest message is always included even if it alone exceeds the token budget."""
+        """Test that the newest message is always included even if it alone
+        exceeds the token budget."""
         msg = self._make_message("user", "final question")
         result, stats = build_context_messages([msg], system_prompt="", max_tokens=10)
         assert len(result) == 1

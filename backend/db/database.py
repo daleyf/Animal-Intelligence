@@ -25,9 +25,9 @@ DEFAULT_SETTINGS = {
     "news_categories": "technology,science,general",
     "morning_report_time": "07:00",
     "voice_enabled": "false",
-    "voice_rate": "1.0",          # speech rate multiplier (0.5 – 2.0)
-    "voice_pitch": "1.0",         # pitch multiplier (0.0 – 2.0)
-    "voice_profile": "neutral",   # neutral | warm | professional
+    "voice_rate": "1.0",  # speech rate multiplier (0.5 – 2.0)
+    "voice_pitch": "1.0",  # pitch multiplier (0.0 – 2.0)
+    "voice_profile": "neutral",  # neutral | warm | professional
     "report_schedule_enabled": "false",
     "report_schedule_timezone": "UTC",
     "last_report_content": "",

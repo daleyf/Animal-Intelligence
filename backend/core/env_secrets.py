@@ -61,10 +61,7 @@ def get_integration_secret_metadata(key: str) -> dict[str, str | bool | None]:
 
 
 def list_integration_secret_metadata() -> dict[str, dict[str, str | bool | None]]:
-    return {
-        key: get_integration_secret_metadata(key)
-        for key in ALLOWED_INTEGRATION_ENV_KEYS
-    }
+    return {key: get_integration_secret_metadata(key) for key in ALLOWED_INTEGRATION_ENV_KEYS}
 
 
 def set_integration_secret(key: str, value: str) -> dict[str, str | bool | None]:

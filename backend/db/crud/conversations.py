@@ -44,14 +44,10 @@ def list_conversations(
             .filter(Message.content.ilike(pattern))
             .scalar_subquery()
         )
-        q = q.filter(
-            Conversation.title.ilike(pattern) | Conversation.id.in_(msg_conv_ids)
-        )
+        q = q.filter(Conversation.title.ilike(pattern) | Conversation.id.in_(msg_conv_ids))
 
     total = q.count()
-    convos = (
-        q.order_by(Conversation.updated_at.desc()).offset(offset).limit(limit).all()
-    )
+    convos = q.order_by(Conversation.updated_at.desc()).offset(offset).limit(limit).all()
     return convos, total
 
 

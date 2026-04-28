@@ -79,9 +79,7 @@ async def research(
     ollama: OllamaClient = Depends(get_ollama),
 ) -> StreamingResponse:
     """Stream a research session for the given question."""
-    active_model = request.model or settings_crud.get_value(
-        db, "active_model", "llama3.1:8b"
-    )
+    active_model = request.model or settings_crud.get_value(db, "active_model", "llama3.1:8b")
 
     # Sanitize the question before logging — strip PII using profile data
     profile = profile_crud.get_profile(db)
@@ -132,7 +130,10 @@ async def research(
                     if status_steps:
                         extra["reasoning"] = status_steps
                     conv_crud.add_message(
-                        db, convo.id, "assistant", event.full_content,
+                        db,
+                        convo.id,
+                        "assistant",
+                        event.full_content,
                         extra_data=extra if extra else None,
                     )
 
@@ -140,26 +141,31 @@ async def research(
                     await _generate_title(convo.id, request.question, active_model, ollama, db)
 
                     log_tool_call(
-                        db, "web_search",
+                        db,
+                        "web_search",
                         input_summary=f"question={sanitized_question[:200]!r}",
                         success=True,
                         session_id=session_id,
                         sub_queries=queries_used if queries_used else None,
                         data_destination="ollama.com/api/web_search",
                     )
-                    yield _sse({
-                        "type": "done",
-                        "full_content": event.full_content,
-                        "sources": event.sources,
-                    })
+                    yield _sse(
+                        {
+                            "type": "done",
+                            "full_content": event.full_content,
+                            "sources": event.sources,
+                        }
+                    )
 
                 elif event.type == "error":
                     # Remove the placeholder conversation — nothing was saved
                     conv_crud.soft_delete_conversation(db, convo.id)
                     log_tool_call(
-                        db, "web_search",
+                        db,
+                        "web_search",
                         input_summary=f"question={sanitized_question[:200]!r}",
-                        success=False, error_message=event.message,
+                        success=False,
+                        error_message=event.message,
                         session_id=session_id,
                         sub_queries=queries_used if queries_used else None,
                         data_destination="ollama.com/api/web_search",
@@ -176,9 +182,11 @@ async def research(
             conv_crud.soft_delete_conversation(db, convo.id)
             if not success:
                 log_tool_call(
-                    db, "web_search",
+                    db,
+                    "web_search",
                     input_summary=f"question={sanitized_question[:200]!r}",
-                    success=False, error_message=str(exc),
+                    success=False,
+                    error_message=str(exc),
                     session_id=session_id,
                     sub_queries=queries_used if queries_used else None,
                     data_destination="ollama.com/api/web_search",

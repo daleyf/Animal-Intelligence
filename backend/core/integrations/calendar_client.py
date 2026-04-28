@@ -39,7 +39,7 @@ def _fmt_time(iso: str) -> str:
 @dataclass
 class CalendarEvent:
     title: str
-    start: str      # ISO 8601 string
+    start: str  # ISO 8601 string
     end: str
     location: str
     description: str
@@ -168,8 +168,12 @@ class CalendarClient:
 
             service = build("calendar", "v3", credentials=creds)
             today = date.today()
-            time_min = datetime(today.year, today.month, today.day, 0, 0, 0, tzinfo=timezone.utc).isoformat()  # noqa: E501
-            time_max = datetime(today.year, today.month, today.day, 23, 59, 59, tzinfo=timezone.utc).isoformat()  # noqa: E501
+            time_min = datetime(
+                today.year, today.month, today.day, 0, 0, 0, tzinfo=timezone.utc
+            ).isoformat()  # noqa: E501
+            time_max = datetime(
+                today.year, today.month, today.day, 23, 59, 59, tzinfo=timezone.utc
+            ).isoformat()  # noqa: E501
 
             result = (
                 service.events()

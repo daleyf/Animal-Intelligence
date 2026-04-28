@@ -75,9 +75,7 @@ class ResearchAgent:
         if not self._search.available:
             yield ResearchEvent(
                 type="error",
-                message=(
-                    "No Ollama API key. Add OLLAMA_API_KEY in Settings → Integrations."
-                ),
+                message=("No Ollama API key. Add OLLAMA_API_KEY in Settings → Integrations."),
             )
             return
 
@@ -187,9 +185,7 @@ def _build_synthesis_prompt(question: str, sources: list[SearchResult]) -> str:
     ]
     for i, src in enumerate(sources, start=1):
         content_block = src.content if src.content else src.snippet
-        lines.append(
-            f"[{i}] {src.title} ({src.source})\n{content_block[:CONTENT_PER_SOURCE]}"
-        )
+        lines.append(f"[{i}] {src.title} ({src.source})\n{content_block[:CONTENT_PER_SOURCE]}")
 
     n = len(sources)
     valid = ", ".join(f"[{i}]" for i in range(1, n + 1))

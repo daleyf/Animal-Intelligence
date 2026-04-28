@@ -4,6 +4,7 @@ Tests for MemoryStore and ResearchAgent components.
 These tests use an in-memory SQLite DB and a mock Ollama client so no real
 Ollama process is required.
 """
+
 import tempfile
 import pytest
 
@@ -11,6 +12,7 @@ import pytest
 # MemoryStore
 try:
     import chromadb  # noqa: F401
+
     CHROMA_AVAILABLE = True
 except ImportError:
     CHROMA_AVAILABLE = False

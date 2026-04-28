@@ -20,9 +20,7 @@ from db.crud import settings as settings_crud
 @pytest.fixture
 def db():
     """Create a fresh in-memory SQLite database for each test."""
-    engine = create_engine(
-        "sqlite:///:memory:", connect_args={"check_same_thread": False}
-    )
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
     Base.metadata.create_all(engine)
     SessionLocal = sessionmaker(bind=engine)
     session = SessionLocal()
@@ -74,7 +72,8 @@ class TestConversationCrud:
 
     # test listing conversations with no conversations returns empty list and total 0
     def test_list_conversations_empty(self, db):
-        """Test that listing conversations when there are none returns an empty list and total of 0."""
+        """Test that listing conversations when there are none returns an empty list
+        and total of 0."""
         convos, total = conv_crud.list_conversations(db)
         assert convos == []
         assert total == 0
@@ -107,7 +106,8 @@ class TestConversationCrud:
 
     # test adding messages to a conversation and retrieving them
     def test_add_and_get_messages(self, db):
-        """Test that adding messages to a conversation and then retrieving them works as expected."""
+        """Test that adding messages to a conversation and then retrieving them
+        works as expected."""
         convo = conv_crud.create_conversation(db, model_name="llama3.1:8b")
         conv_crud.add_message(db, convo.id, "user", "Hello!")
         conv_crud.add_message(db, convo.id, "assistant", "Hi there!", token_count=3)

@@ -36,7 +36,7 @@ class MorningReportService:
     async def generate(
         self,
         profile: "UserProfile | None",
-        token_row,            # GoogleCalendarToken ORM row or None
+        token_row,  # GoogleCalendarToken ORM row or None
         model: str,
         ollama: "OllamaClient",
         db: "Session | None" = None,
@@ -95,7 +95,8 @@ class MorningReportService:
                 else:
                     err_msg = None
                 log_tool_call(
-                    db, "weather",
+                    db,
+                    "weather",
                     input_summary=f"location={home!r}",
                     success=weather_ok,
                     error_message=err_msg,
@@ -104,7 +105,8 @@ class MorningReportService:
                 )
             elif not home:
                 log_tool_call(
-                    db, "weather",
+                    db,
+                    "weather",
                     input_summary="skipped — no home location configured",
                     success=False,
                     error_message=(
@@ -117,7 +119,8 @@ class MorningReportService:
 
             news_result = data.get("news")
             log_tool_call(
-                db, "news",
+                db,
+                "news",
                 input_summary=f"topics={news_topics!r}",
                 success=isinstance(news_result, list),
                 session_id=session_id,
@@ -127,7 +130,8 @@ class MorningReportService:
 
             if calendar_connected:
                 log_tool_call(
-                    db, "calendar",
+                    db,
+                    "calendar",
                     input_summary="today's calendar events",
                     success=True,
                     session_id=session_id,
@@ -191,9 +195,7 @@ def _build_report_prompt(
     else:
         parts.append("\n## Top Headlines\nNews unavailable.")
 
-    parts.append(
-        "\n---\nPlease synthesise the above into a natural, spoken-word morning briefing."
-    )
+    parts.append("\n---\nPlease synthesise the above into a natural, spoken-word morning briefing.")
     return "\n".join(parts)
 
 

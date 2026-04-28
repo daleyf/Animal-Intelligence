@@ -80,10 +80,13 @@ def factory_reset(db: Session = Depends(get_db)):
         profile.onboarding_done = False
 
     # Clear cached report content so the Daily Report page shows empty state
-    settings_crud.update_many(db, {
-        "last_report_content": "",
-        "last_report_generated_at": "",
-    })
+    settings_crud.update_many(
+        db,
+        {
+            "last_report_content": "",
+            "last_report_generated_at": "",
+        },
+    )
 
     db.commit()
     return {"reset": True}

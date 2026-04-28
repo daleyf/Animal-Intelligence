@@ -94,7 +94,8 @@ def test_health_endpoint(client):
 
 # /api/v1/chat
 # -------------- #
-# chat endpoint successfully creates a conversation and returns stream tokens, including conversation_id.
+# chat endpoint successfully creates a conversation and returns stream tokens,
+# including conversation_id.
 def test_chat_creates_conversation(client):
     """A new chat message should return a conversation_id and stream tokens."""
     with client.stream(
@@ -109,7 +110,9 @@ def test_chat_creates_conversation(client):
     assert '"type": "token"' in raw
     assert '"type": "done"' in raw
 
-# chat can continue an existing conversation using conversation_id from the first test, and returns a new stream with done event.
+
+# chat can continue an existing conversation using conversation_id from the first test,
+# and returns a new stream with done event.
 def test_chat_continues_conversation(client):
     """Second message with existing conversation_id should succeed."""
     with client.stream(
@@ -120,6 +123,7 @@ def test_chat_continues_conversation(client):
         raw = b"".join(resp.iter_bytes()).decode()
 
     import json
+
     conv_id = None
     for line in raw.splitlines():
         if line.startswith("data: "):
@@ -136,13 +140,15 @@ def test_chat_continues_conversation(client):
         "/api/v1/chat",
         json={"message": "Follow-up", "conversation_id": conv_id, "model": "test-model"},
     ) as resp:
-        # If the conversation_id is valid, we should get a new stream of tokens followed by a done event.
+        # If the conversation_id is valid, we should get a new stream of tokens
+        # followed by a done event.
         assert resp.status_code == 200
         raw2 = b"".join(resp.iter_bytes()).decode()
 
     # The second response should also contain token events and a done event.
     assert '"type": "token"' in raw2
     assert '"type": "done"' in raw2
+
 
 # chat with an invalid conversation_id returns an error event.
 def test_chat_invalid_conversation_id(client):
@@ -160,7 +166,8 @@ def test_chat_invalid_conversation_id(client):
 
 # /api/v1/memory
 # -------------- #
-# memory list endpoint should return available flag for each memory, indicating if it's currently in use in a conversation.
+# memory list endpoint should return available flag for each memory,
+# indicating if it's currently in use in a conversation.
 def test_memory_list_returns_available_flag(client):
     """Memory list endpoint should return available flag for each memory."""
     resp = client.get("/api/v1/memory")
@@ -171,6 +178,7 @@ def test_memory_list_returns_available_flag(client):
     assert "available" in data
     # available should be less than or equal to total
     assert data["available"] <= data["total"]
+
 
 # successfully count the number of memories and return an integer.
 def test_memory_count(client):
@@ -186,12 +194,14 @@ def test_memory_count(client):
 # -------------- #
 # return correct status
 def test_report_status(client):
-    """Report status endpoint should return keys for weather, news, calendar, and calendar_configured."""
+    """Report status endpoint should return keys for weather, news, calendar,
+    and calendar_configured."""
     resp = client.get("/api/v1/report/status")
     assert resp.status_code == 200
     data = resp.json()
     for key in ("weather", "news", "web_search", "calendar", "calendar_configured"):
         assert key in data
+
 
 # the presence of API keys should correctly reflect in the status response.
 def test_report_status_all_keys_absent(client):
@@ -211,6 +221,7 @@ def test_report_status_all_keys_absent(client):
     assert data["news"] is False
     assert data["web_search"] is False
 
+
 # the presence of API keys should correctly reflect in the status response.
 def test_report_status_weather_key_present(client):
     """weather is True when OPENWEATHERMAP_API_KEY is configured."""
@@ -228,6 +239,7 @@ def test_report_status_weather_key_present(client):
     assert data["weather"] is True
     assert data["news"] is False
     assert data["web_search"] is False
+
 
 # the presence of API keys should correctly reflect in the status response.
 def test_report_status_ollama_key_enables_news_and_web_search(client):
@@ -247,6 +259,7 @@ def test_report_status_ollama_key_enables_news_and_web_search(client):
     assert data["news"] is True
     assert data["web_search"] is True
 
+
 # all keys present should reflect as True in the status response.
 def test_report_status_all_keys_present(client):
     """All integration flags are True when every key is configured."""
@@ -265,6 +278,7 @@ def test_report_status_all_keys_present(client):
     assert data["news"] is True
     assert data["web_search"] is True
 
+
 # calendar_configured should reflect the calendar client's configured state.
 def test_report_status_calendar_configured_true_when_credentials_set(client):
     """calendar_configured is True when calendar client is configured."""
@@ -273,6 +287,7 @@ def test_report_status_calendar_configured_true_when_credentials_set(client):
         resp = client.get("/api/v1/report/status")
 
     assert resp.json()["calendar_configured"] is True
+
 
 # calendar_configured should reflect the calendar client's configured state.
 def test_report_calendar_auth_no_config(client):
@@ -286,6 +301,7 @@ def test_report_calendar_auth_no_config(client):
     assert "error" in data
     assert "auth_url" not in data
 
+
 # calendar_configured should reflect the calendar client's configured state.
 def test_report_calendar_auth_returns_url_when_configured(client):
     fake_url = "https://accounts.google.com/o/oauth2/auth?client_id=fake"
@@ -297,6 +313,7 @@ def test_report_calendar_auth_returns_url_when_configured(client):
     data = resp.json()
     assert data["auth_url"] == fake_url
     assert "error" not in data
+
 
 # calendar_configured should reflect the calendar client's configured state.
 def test_report_calendar_callback_valid_code(client):
@@ -317,6 +334,7 @@ def test_report_calendar_callback_valid_code(client):
     assert resp.json()["success"] is True
     assert client.get("/api/v1/report/status").json()["calendar"] is True
 
+
 # calendar_configured should reflect the calendar client's configured state.
 def test_report_calendar_callback_invalid_code(client):
     """An invalid auth code should return success: False with the error message."""
@@ -329,18 +347,22 @@ def test_report_calendar_callback_invalid_code(client):
     assert data["success"] is False
     assert "invalid_grant" in data["error"]
 
+
 # calendar_configured should reflect the calendar client's configured state.
 def test_report_calendar_callback_missing_code_rejected(client):
     resp = client.post("/api/v1/report/calendar/callback", json={})
     assert resp.status_code == 422
 
+
 # calendar_configured should reflect the calendar client's configured state.
 def test_report_calendar_disconnect(client):
     """Disconnect clears the connected flag and returns disconnected: True."""
     fake_token = {
-        "access_token": "tok", "refresh_token": "ref",
+        "access_token": "tok",
+        "refresh_token": "ref",
         "token_uri": "https://oauth2.googleapis.com/token",
-        "client_id": "cid", "client_secret": "cs",
+        "client_id": "cid",
+        "client_secret": "cs",
         "scopes": "https://www.googleapis.com/auth/calendar.readonly",
     }
     with patch("api.routes.report.calendar_client") as mc:
@@ -352,6 +374,7 @@ def test_report_calendar_disconnect(client):
     assert resp.json()["disconnected"] is True
     assert client.get("/api/v1/report/status").json()["calendar"] is False
 
+
 # calendar_configured should reflect the calendar client's configured state.
 def test_report_calendar_disconnect_idempotent(client):
     """Disconnecting when already disconnected should not error."""
@@ -359,6 +382,7 @@ def test_report_calendar_disconnect_idempotent(client):
     resp = client.delete("/api/v1/report/calendar")
     assert resp.status_code == 200
     assert resp.json()["disconnected"] is True
+
 
 # calendar_configured should reflect the calendar client's configured state.
 def test_report_calendar_events_not_connected(client):
@@ -413,6 +437,7 @@ def test_list_conversations_empty():
     data = resp.json()
     assert "conversations" in data
     assert data["conversations"] == []
+
 
 # deleting a non-existent conversation should return a 404 error.
 def test_delete_nonexistent_conversation(client):

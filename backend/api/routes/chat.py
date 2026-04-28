@@ -121,12 +121,8 @@ async def chat(
     db: Session = Depends(get_db),
     ollama: OllamaClient = Depends(get_ollama),
 ) -> StreamingResponse:
-    active_model = request.model or settings_crud.get_value(
-        db, "active_model", "llama3.1:8b"
-    )
-    memory_enabled = (
-        settings_crud.get_value(db, "memory_enabled", "true") == "true"
-    )
+    active_model = request.model or settings_crud.get_value(db, "active_model", "llama3.1:8b")
+    memory_enabled = settings_crud.get_value(db, "memory_enabled", "true") == "true"
 
     async def event_stream() -> AsyncIterator[str]:
         # -- Step 1: get or create conversation --
@@ -153,9 +149,7 @@ async def chat(
         if memory_context:
             system_prompt = f"{system_prompt}\n\n{memory_context}"
 
-        max_tokens = int(
-            settings_crud.get_value(db, "context_window_tokens", "4096") or "4096"
-        )
+        max_tokens = int(settings_crud.get_value(db, "context_window_tokens", "4096") or "4096")
 
         history = conv_crud.get_messages(db, convo.id)
         context, _ctx_stats = build_context_messages(history, system_prompt, max_tokens)
